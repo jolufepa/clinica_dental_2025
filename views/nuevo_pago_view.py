@@ -1,3 +1,4 @@
+# views/nuevo_pago_view.py
 from datetime import datetime
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -8,9 +9,9 @@ class NuevoPagoView(tk.Toplevel):
     def __init__(self, controller, paciente_id=None):
         super().__init__()
         self.controller = controller
-        self.paciente_id = paciente_id
+        self.paciente_id = paciente_id  # Puede ser None si no se proporciona
         self.title("Nuevo Pago")
-        self.geometry("400x350")
+        self.geometry("400x400")  # Aumentamos el tamaño para el nuevo campo
         self._crear_formulario()
         self._centrar_ventana()
 
@@ -23,6 +24,15 @@ class NuevoPagoView(tk.Toplevel):
         self.geometry(f'+{x}+{y}')
 
     def _crear_formulario(self):
+        # Campo para mostrar el ID del paciente (no editable)
+        ttk.Label(self, text="ID del Paciente (DNI):").pack(pady=5)
+        self.entry_paciente_id = ttk.Entry(self)
+        if self.paciente_id:
+            self.entry_paciente_id.insert(0, self.paciente_id)
+        self.entry_paciente_id.pack(fill=tk.X, padx=10)
+        self.entry_paciente_id.configure(state="readonly")
+
+        # Campos existentes para el pago
         ttk.Label(self, text="Monto Total:").pack(pady=5)
         self.entry_monto_total = ttk.Entry(self)
         self.entry_monto_total.pack(fill=tk.X, padx=10)
@@ -44,6 +54,10 @@ class NuevoPagoView(tk.Toplevel):
                  command=self.destroy).pack(side=tk.LEFT, padx=5)
 
     def _guardar_pago(self):
+        if not self.paciente_id:
+            messagebox.showerror("Error", "Debe especificar un ID de paciente")
+            return
+
         try:
             monto_total = float(self.entry_monto_total.get())
             monto_pagado = float(self.entry_monto_pagado.get())
@@ -55,7 +69,7 @@ class NuevoPagoView(tk.Toplevel):
 
             nuevo_pago = Pago(
                 id_pago=None,
-                id_visita=None,  # Puedes añadir lógica para vincular visitas
+                id_visita=None,  # Puedes añadir lógica para vincular visitas más adelante
                 identificador=self.paciente_id,
                 monto_total=monto_total,
                 monto_pagado=monto_pagado,
@@ -74,6 +88,3 @@ class NuevoPagoView(tk.Toplevel):
             messagebox.showerror("Error", f"Dato inválido: {str(e)}")
         except Exception as e:
             messagebox.showerror("Error", f"Error al guardar: {str(e)}")
-        finally:
-            if 'db' in locals():
-                db.cerrar_conexion()

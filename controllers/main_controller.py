@@ -6,8 +6,11 @@ from views.menu_principal_view import MenuPrincipalView
 import sys
 from pathlib import Path
 
+
+
 # Añade la ruta del proyecto al sistema
 sys.path.append(str(Path(__file__).resolve().parent.parent))
+
 class MainController:
     def __init__(self, rol):
         self.rol = rol
@@ -15,17 +18,17 @@ class MainController:
         self.vista_principal = None
         self._iniciar_aplicacion()
         self._ventanas_abiertas = {}
+        print(f"Iniciando MainController, raíz actual: {tk._default_root}")  # Depuración
 
     def _iniciar_aplicacion(self):
-        #"""Configura la ventana principal y el menú"""
+        # Usar la raíz existente (LoginView como tk.Tk) para MenuPrincipalView
         self.vista_principal = MenuPrincipalView(self, self.rol)
         self._configurar_estilos()
         self._centrar_ventana()
         self.vista_principal.protocol("WM_DELETE_WINDOW", self._cerrar_aplicacion)
+        print(f"Iniciando aplicación, raíz actual: {tk._default_root}")  # Depuración
 
     def _configurar_estilos(self):
-        #"""Define estilos visuales consistentes"""
-        
         estilo = ttk.Style()
         estilo.theme_use('clam')
         estilo.configure('TEntry', state='normal')
@@ -35,14 +38,17 @@ class MainController:
         estilo.configure('Treeview.Heading', font=('Arial', 10, 'bold'))
 
     def _centrar_ventana(self):
-        #"""Centra la ventana principal en la pantalla"""
         self.vista_principal.update_idletasks()
         ancho = self.vista_principal.winfo_width()
         alto = self.vista_principal.winfo_height()
         x = (self.vista_principal.winfo_screenwidth() // 2) - (ancho // 2)
         y = (self.vista_principal.winfo_screenheight() // 2) - (alto // 2)
         self.vista_principal.geometry(f'{ancho}x{alto}+{x}+{y}')
-
+        
+    def actualizar_lista_pagos(self):
+        """Actualiza las vistas de pagos"""
+        if 'pagos' in self._ventanas_abiertas:
+            self._ventanas_abiertas['pagos']._cargar_pagos()
     # ================== MÉTODOS PRINCIPALES ==================
     def mostrar_pacientes(self):
         #"""Abre la gestión de pacientes"""
@@ -72,10 +78,15 @@ class MainController:
             modulo = __import__(f'views.{modulo_nombre}', fromlist=[nombre_vista])
             clase_vista = getattr(modulo, nombre_vista)
             self._ventanas_abiertas[clave] = clase_vista(self, *args)  # Pasa *args correctamente
-            self._ventanas_abiertas[clave].grab_set()
+            self._ventanas_abiertas[clave].lift()  # Asegurar que la ventana esté al frente
+            self._ventanas_abiertas[clave].focus_set()  # Asegurar que tenga el foco
+            print(f"Abriendo {nombre_vista} con clave {clave}, raíz actual: {tk._default_root}")  # Depuración
         else:
-            self._ventanas_abiertas[clave].lift()
+            self._ventanas_abiertas[clave].lift()  # Levantar la ventana existente
 
+    def _cerrar_aplicacion(self):
+        DatabaseService().cerrar_conexion()  # Cierra solo aquí
+        self.vista_principal.destroy()
     # En controllers/main_controller.py
     def actualizar_lista_pacientes(self):
         if 'pacientes' in self._ventanas_abiertas:
@@ -89,13 +100,14 @@ class MainController:
             self._ventanas_abiertas['visitas']._cargar_visitas()
 
     def actualizar_lista_citas(self):
-        #"""Actualiza las vistas de citas"""
-        if 'citas' in self._ventanas_abiertas:
+        """Actualiza las vistas de citas"""
+        if 'citas' in self._ventanas_abiertas and self._ventanas_abiertas['citas'].winfo_exists():
             self._ventanas_abiertas['citas']._cargar_citas()
 
-    def _cerrar_aplicacion(self):
-        DatabaseService().cerrar_conexion()  # Cierra solo aquí
-        self.vista_principal.destroy()
+    def actualizar_lista_usuarios(self):
+        """Actualiza la vista de gestión de usuarios"""
+        if 'usuarios' in self._ventanas_abiertas:
+            self._ventanas_abiertas['usuarios']._cargar_usuarios()
 
     # ================== MÉTODOS DE DATOS ==================
     def obtener_pacientes(self):
@@ -111,3 +123,5 @@ class MainController:
         self._cerrar_aplicacion()
         from views.login_view import LoginView
         LoginView()
+print(f"Chequeo de raíz global: {tk._default_root}")        
+        

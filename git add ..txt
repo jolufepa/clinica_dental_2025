@@ -1,7 +1,4 @@
 git add .
 git commit -m "Descripción del cambio"
 git push origin main
-controllers/main_controller.py
-views/editar_paciente_view.py
-services/database_service.py
-views/main.py
+

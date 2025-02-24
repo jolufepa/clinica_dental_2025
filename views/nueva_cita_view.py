@@ -1,3 +1,4 @@
+# views/nueva_cita_view.py
 import tkinter as tk
 from tkinter import ttk, messagebox
 from tkcalendar import Calendar
@@ -14,6 +15,9 @@ class NuevaCitaView(tk.Toplevel):
         self.geometry("400x450")
         self._crear_formulario()
         self._centrar_ventana()
+        self.lift()  # Forzar que esta ventana esté al frente
+        self.focus_set()  # Asegurar que tenga el foco al abrirse
+        # Eliminamos transient() para evitar bloqueos modales
 
     def _centrar_ventana(self):
         self.update_idletasks()
@@ -25,8 +29,9 @@ class NuevaCitaView(tk.Toplevel):
 
     def _crear_formulario(self):
         ttk.Label(self, text="Fecha:").pack(pady=5)
-        self.calendario = Calendar(self, selectmode='day', date_pattern='dd/mm/yyyy')
+        self.calendario = Calendar(self, selectmode='day', date_pattern='yyyy-mm-dd')
         self.calendario.pack(padx=10, pady=5)
+        self.calendario.focus_set()  # Establecer foco inicial en el calendario
 
         ttk.Label(self, text="Hora (HH:MM):").pack(pady=5)
         self.entry_hora = ttk.Entry(self)
@@ -45,18 +50,28 @@ class NuevaCitaView(tk.Toplevel):
                  command=self.destroy).pack(side=tk.LEFT, padx=5)
 
     def _guardar_cita(self):
+        print(f"Intentando guardar cita para paciente_id: {self.paciente_id}")  # Depuración
+        if not self.paciente_id:
+            messagebox.showerror("Error", "Debe especificar un ID de paciente")
+            return
+
         try:
             fecha = self.calendario.get_date()
             hora = self.entry_hora.get()
             odontologo = self.entry_odontologo.get().strip()
             
-            # Validar formato de hora
-            datetime.strptime(hora, "%H:%M")
+            # Validar formato de hora (HH:MM)
+            try:
+                datetime.strptime(hora, "%H:%M")
+            except ValueError:
+                raise ValueError("El formato de hora debe ser HH:MM (ej. 14:30)")
+
+            print(f"Datos de la cita: fecha={fecha}, hora={hora}, odontologo={odontologo}, estado=Programada")  # Depuración
             
             nueva_cita = Cita(
                 id_cita=None,
                 identificador=self.paciente_id,
-                fecha=fecha,
+                fecha=fecha,  # Usamos el formato yyyy-mm-dd de tkcalendar
                 hora=hora,
                 odontologo=odontologo,
                 estado="Programada"
@@ -76,6 +91,3 @@ class NuevaCitaView(tk.Toplevel):
             messagebox.showerror("Error", f"Dato inválido: {str(e)}")
         except Exception as e:
             messagebox.showerror("Error", f"Error al guardar: {str(e)}")
-        finally:
-            if 'db' in locals():
-                db.cerrar_conexion()

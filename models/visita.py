@@ -1,6 +1,7 @@
+# models/visita.py
 class Visita:
-    def __init__(self, id_visita, identificador, fecha, motivo, diagnostico, tratamiento, odontologo, estado):
-        self.id_visita = id_visita
+    def __init__(self, identificador, fecha, motivo, diagnostico, tratamiento, odontologo, estado, id_visita=None):
+        self.id_visita = id_visita  # Puede ser None al crear una nueva visita
         self.identificador = identificador
         self.fecha = fecha
         self.motivo = motivo
