@@ -12,6 +12,7 @@ class NuevoPacienteView(tk.Toplevel):
         self.resizable(False, False)
         self._crear_formulario()
         self._centrar_ventana()
+        self.grab_set()  # ventana modal
 
     def _centrar_ventana(self):
         self.update_idletasks()
@@ -62,7 +63,7 @@ class NuevoPacienteView(tk.Toplevel):
 
         try:
             nuevo_paciente = Paciente(**datos)
-            db = DatabaseService()
+            db = DatabaseService()  # Usa el singleton
             
             if db.existe_identificador(nuevo_paciente.identificador):
                 messagebox.showerror("Error", "Este identificador ya está registrado")
@@ -75,5 +76,4 @@ class NuevoPacienteView(tk.Toplevel):
             
         except Exception as e:
             messagebox.showerror("Error", f"Error al guardar: {str(e)}")
-        finally:
-            db.cerrar_conexion()
+       

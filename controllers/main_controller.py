@@ -67,13 +67,11 @@ class MainController:
 
     # ================== MÉTODOS AUXILIARES ==================
     def _abrir_ventana(self, clave, nombre_vista, *args):
-        #"""Maneja la apertura de ventanas evitando duplicados"""
         if clave not in self._ventanas_abiertas or not self._ventanas_abiertas[clave].winfo_exists():
-            # Convertir "PacientesView" a "pacientes_view"
-            modulo_nombre = nombre_vista.lower().replace('view', '_view')  # ← Corrección clave
+            modulo_nombre = nombre_vista.lower().replace('view', '_view')
             modulo = __import__(f'views.{modulo_nombre}', fromlist=[nombre_vista])
             clase_vista = getattr(modulo, nombre_vista)
-            self._ventanas_abiertas[clave] = clase_vista(self, *args)
+            self._ventanas_abiertas[clave] = clase_vista(self, *args)  # Pasa *args correctamente
             self._ventanas_abiertas[clave].grab_set()
         else:
             self._ventanas_abiertas[clave].lift()
@@ -81,7 +79,9 @@ class MainController:
     # En controllers/main_controller.py
     def actualizar_lista_pacientes(self):
         if 'pacientes' in self._ventanas_abiertas:
-            self._ventanas_abiertas['pacientes']._cargar_pacientes()
+            ventana_pacientes = self._ventanas_abiertas['pacientes']
+            ventana_pacientes._cargar_pacientes()  # Llama al método interno de la vista
+            ventana_pacientes.update()
 
     def actualizar_lista_visitas(self):
         #"""Actualiza las vistas de visitas médicas"""

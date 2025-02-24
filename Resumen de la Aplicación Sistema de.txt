@@ -1,0 +1,105 @@
+**Resumen de la Aplicación: Sistema de Gestión para Clínica Dental**  
+**Versión: 2025**  
+
+---
+
+### **Objetivo**  
+Desarrollar un sistema integral para gestionar pacientes, visitas médicas, pagos, citas y usuarios en una clínica dental, facilitando la administración diaria y mejorando la eficiencia operativa.
+
+---
+
+### **Características Principales**  
+1. **Módulos Principales**:  
+   - **Pacientes**:  
+     - Registrar, editar y eliminar pacientes.  
+     - Campos: Identificador único, nombre, fecha de nacimiento, teléfono, email, dirección, historial médico.  
+   - **Visitas Médicas**:  
+     - Registrar consultas con detalles como fecha, motivo, diagnóstico, tratamiento, odontólogo y estado.  
+     - Asociación automática a un paciente existente.  
+   - **Pagos**:  
+     - Gestión de transacciones financieras vinculadas a pacientes.  
+   - **Citas**:  
+     - Programación y seguimiento de citas.  
+   - **Usuarios**:  
+     - Roles: Administrador (`admin`) y Recepción (`recepcion`).  
+     - Autenticación y control de acceso.  
+
+2. **Tecnologías Utilizadas**:  
+   - **Lenguaje**: Python 3.  
+   - **Interfaz Gráfica**: Tkinter (biblioteca estándar de Python).  
+   - **Base de Datos**: SQLite (`clinica_dental.db`).  
+   - **Arquitectura**: Modelo-Vista-Controlador (MVC).  
+
+3. **Estructura del Proyecto**:  
+   ```plaintext
+   CLINICA_DENTAL_2025/
+   ├── controllers/          # Lógica de control
+   │   ├── main_controller.py
+   │   └── ...
+   ├── models/              # Modelos de datos
+   │   ├── paciente.py
+   │   ├── visita.py
+   │   └── ...
+   ├── views/               # Interfaces gráficas
+   │   ├── pacientes_view.py
+   │   ├── nueva_visita_view.py
+   │   └── ...
+   ├── services/            # Servicios de base de datos
+   │   └── database_service.py
+   └── main.py              # Punto de entrada
+   ```
+
+---
+
+### **Funcionalidades Clave**  
+- **Base de Datos Centralizada**:  
+  - Tablas: `pacientes`, `visitas`, `usuarios`, `pagos`, `citas`.  
+  - Integridad referencial (claves foráneas).  
+- **Interfaz Intuitiva**:  
+  - Ventanas modales para evitar conflictos de enfoque.  
+  - Actualización automática de listas (ej: pacientes, visitas).  
+- **Seguridad**:  
+  - Usuarios con roles y contraseñas encriptadas (pendiente de implementar).  
+
+---
+
+### **Problemas Conocidos y Soluciones Aplicadas**  
+1. **Edición de Pacientes**:  
+   - **Error**: Campos no editables.  
+   - **Solución**: Bloquear el campo `identificador` y asegurar la actualización de todos los campos en la base de datos.  
+
+2. **Guardar Visitas**:  
+   - **Error**: `DatabaseService` sin método `guardar_vista`.  
+   - **Solución**: Implementar el método y validar la existencia del paciente.  
+
+3. **Ventanas no Modales**:  
+   - **Error**: Interacción simultánea entre ventanas.  
+   - **Solución**: Usar `grab_set()` y `wait_window()` para forzar modalidad.  
+
+4. **Carga de Datos**:  
+   - **Error**: Listas vacías en `visitas_view.py`.  
+   - **Solución**: Implementar `obtener_visitas` en `DatabaseService`.  
+
+---
+
+### **Próximos Pasos (To-Do)**  
+- **Mejoras en la Interfaz**:  
+  - Añadir validación de formatos (ej: fecha, email).  
+  - Implementar búsqueda y filtrado en listas.  
+- **Funcionalidades Pendientes**:  
+  - Módulo de reportes (estadísticas, historiales).  
+  - Encriptación de contraseñas.  
+- **Depuración**:  
+  - Revisar el manejo de excepciones en toda la aplicación.  
+  - Optimizar la actualización de ventanas para evitar redundancias.  
+
+---
+
+### **Notas para Retomar el Proyecto**  
+- **Base de Datos**: Verificar las tablas y relaciones en `clinica_dental.db`.  
+- **Controladores**: Revisar el flujo de datos entre `main_controller.py` y las vistas.  
+- **Errores Recurrentes**:  
+  - Asegurar que los métodos de la base de datos estén implementados y coincidan con las llamadas desde las vistas.  
+  - Validar que los parámetros pasados entre ventanas sean consistentes (ej: `paciente_id`).  
+
+Este resumen servirá como guía para continuar el desarrollo, corregir errores pendientes y expandir las funcionalidades de la aplicación. ¡Buen descanso! 😊

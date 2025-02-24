@@ -62,7 +62,11 @@ class PacientesView(tk.Toplevel):
         self.tree.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         self.tree.bind("<Double-1>", self._editar_paciente)
         
-        
+    def _seleccionar_paciente(self, event):
+        seleccion = self.tree.selection()
+        if seleccion:
+            self.paciente_seleccionado = self.tree.item(seleccion, "values")[0]
+            self.destroy()      
           
 
     def _cargar_pacientes(self):
@@ -106,7 +110,12 @@ class PacientesView(tk.Toplevel):
                 p.telefono,
                 p.email
             ))
-
+    # Ejemplo en pacientes_view.py al abrir visitas:
+    def _abrir_visitas(self):
+        seleccion = self.tree.selection()
+        if seleccion:
+            paciente_id = self.tree.item(seleccion, "values")[0]
+            self.controller.mostrar_visitas(paciente_id)  # Pasa el ID
     def _nuevo_paciente(self):
         NuevoPacienteView(self.controller)
         self._cargar_pacientes()

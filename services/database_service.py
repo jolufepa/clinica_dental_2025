@@ -16,10 +16,11 @@ class DatabaseService:
             cls._instance._inicializar()
         return cls._instance
 
+    # services/database_service.py
     def _inicializar(self):
-        """Inicializa la conexión solo una vez"""
         self.conn = sqlite3.connect("clinica_dental.db", check_same_thread=False)
         self.cursor = self.conn.cursor()
+        self.cursor.execute("PRAGMA foreign_keys = ON")  # ← Activa claves foráneas
         self._crear_tablas()
 
     def _crear_tablas(self):
@@ -117,6 +118,14 @@ class DatabaseService:
         self.cursor.execute("DELETE FROM pacientes WHERE identificador = ?", (identificador,))
         self.conn.commit()
 
+    def existe_identificador(self, identificador: str) -> bool:
+        """Verifica si un identificador ya está registrado en la base de datos"""
+        self.cursor.execute(
+            "SELECT identificador FROM pacientes WHERE identificador = ?",
+            (identificador,)
+        )
+        return self.cursor.fetchone() is not None
+
     # ================== OPERACIONES PARA USUARIOS ==================
     def crear_usuario(self, username, password, role):
         self.cursor.execute(
@@ -137,7 +146,55 @@ class DatabaseService:
         except sqlite3.ProgrammingError:
             self._inicializar()  # Reabre conexión si está cerrada
             return self.verificar_usuario(username, password)
+        
+    # services/database_service.py
+    # services/database_service.py
+    def guardar_vista(self, visita):
+        try:
+            # Verificar si el paciente existe
+            self.cursor.execute(
+                "SELECT identificador FROM pacientes WHERE identificador = ?",
+                (visita.identificador,)
+            )
+            if not self.cursor.fetchone():
+                raise ValueError("El paciente no existe")  # Error personalizado
 
+            # Insertar visita
+            self.cursor.execute('''
+                INSERT INTO visitas 
+                (identificador, fecha, motivo, diagnostico, tratamiento, odontologo, estado)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                visita.identificador,
+                visita.fecha,
+                visita.motivo,
+                visita.diagnostico,
+                visita.tratamiento,
+                visita.odontologo,
+                visita.estado
+            ))
+            self.conn.commit()
+            return True
+
+        except sqlite3.IntegrityError as e:
+            print(f"Error de integridad: {str(e)}")
+            return False
+        except ValueError as e:
+            print(f"Error de validación: {str(e)}")
+            return False 
+          
+    # services/database_service.py
+    def obtener_visitas(self, paciente_id: str):
+        """Obtiene todas las visitas de un paciente específico"""
+        try:
+            self.cursor.execute(
+                "SELECT * FROM visitas WHERE identificador = ?", 
+                (paciente_id,)
+            )
+            visitas = self.cursor.fetchall()
+            return [Visita(*visita) for visita in visitas]  # Convierte a objetos Visita
+        except sqlite3.Error as e:
+            raise Exception(f"Error al obtener visitas: {str(e)}")
     # ================== MÉTODOS ADICIONALES ==================
     def cerrar_conexion(self):
         #"""Cierra la conexión solo al finalizar la aplicación"""
