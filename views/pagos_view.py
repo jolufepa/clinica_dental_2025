@@ -1,8 +1,13 @@
-# views/pagos_views.py
+# views/pagos_view.py
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
 import tkinter as tk
 from tkinter import ttk, messagebox
 from services.database_service import DatabaseService
 from models.pago import Pago
+from views.styles import configurar_estilos
 
 class PagosView(tk.Toplevel):
     def __init__(self, controller, paciente_id=None):
@@ -15,6 +20,8 @@ class PagosView(tk.Toplevel):
         self._cargar_pacientes()  # Cargar pacientes al iniciar
         if paciente_id:
             self._cargar_pagos()  # Cargar pagos iniciales si hay un paciente_id
+        configurar_estilos(self)  # Aplicar estilos globales
+        self.protocol("WM_DELETE_WINDOW", self._cerrar_ventana)
 
     def _crear_widgets(self):
         # Frame principal para organizar los Treeviews
@@ -38,10 +45,10 @@ class PagosView(tk.Toplevel):
         self.tree_pacientes.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
         # Treeview para mostrar pagos
-        self.tree_pagos = ttk.Treeview(main_frame, columns=("ID", "Fecha", "Monto Total", "Pagado", "Método", "Saldo"), show="headings")
-        for col in ("ID", "Fecha", "Monto Total", "Pagado", "Método", "Saldo"):
-            self.tree_pagos.heading(col, text=col)  # Usar col directamente como texto
-            self.tree_pagos.column(col, width=100, anchor=tk.CENTER)
+        self.tree_pagos = ttk.Treeview(main_frame, columns=("ID Pago", "Fecha", "Monto Total", "Monto Pagado", "Método", "Saldo"), show="headings")
+        for col in ("ID Pago", "Fecha", "Monto Total", "Monto Pagado", "Método", "Saldo"):
+            self.tree_pagos.heading(col, text=col)
+            self.tree_pagos.column(col, width=120, anchor=tk.CENTER)  # Aumentar ancho para valores con "€"
         self.tree_pagos.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
         # Botón para crear nuevo pago
@@ -70,7 +77,7 @@ class PagosView(tk.Toplevel):
                     paciente.telefono
                 ))
         except Exception as e:
-            print(f"Error al cargar pacientes: {str(e)}")
+            messagebox.showerror("Error", f"Error al cargar pacientes: {str(e)}")
 
     def _cargar_pagos(self):
         """Obtiene y muestra los pagos del paciente seleccionado desde la base de datos"""
@@ -146,3 +153,9 @@ class PagosView(tk.Toplevel):
             return
         from views.nuevo_pago_view import NuevoPagoView
         NuevoPagoView(self.controller, self.paciente_id)
+        self._cargar_pagos()  # Actualizar lista de pagos después de crear
+
+    def _cerrar_ventana(self):
+        if 'pagos' in self.controller._ventanas_abiertas:
+            del self.controller._ventanas_abiertas['pagos']
+        self.destroy()

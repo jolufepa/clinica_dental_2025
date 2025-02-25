@@ -3,7 +3,8 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from services.database_service import DatabaseService
 from models.cita import Cita
-
+from views.nueva_cita_view import NuevaCitaView
+from views.styles import configurar_estilos
 class CitasView(tk.Toplevel):
     def __init__(self, controller, paciente_id=None):
         super().__init__()
@@ -12,17 +13,23 @@ class CitasView(tk.Toplevel):
         self.title("Gestión de Citas")
         self.geometry("1000x700")  # Aumentamos más el tamaño para asegurar visibilidad
         self._crear_widgets()
-        self._cargar_pacientes()  # Cargar pacientes al iniciar
+        configurar_estilos(self)  # Aplicar estilos globales
+        self._cargar_pacientes()  # Cargar todos los pacientes al iniciar
         if paciente_id:
             self._cargar_citas()  # Cargar citas iniciales si hay un paciente_id
-
+        self.protocol("WM_DELETE_WINDOW", self._cerrar_ventana)
     def _crear_widgets(self):
-        # Frame principal para organizar los Treeviews
-        main_frame = ttk.Frame(self)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        # Frame superior con botones y buscador
+        frame_superior = ttk.Frame(self)
+        frame_superior.pack(pady=10, fill=tk.X)
 
-        # Frame para el buscador
-        search_frame = ttk.Frame(main_frame)
+        ttk.Button(frame_superior, text="Nueva Cita", 
+                   command=self._nueva_cita).pack(side=tk.LEFT, padx=5)
+        ttk.Button(frame_superior, text="Enviar Recordatorio", 
+                   command=self._enviar_recordatorio).pack(side=tk.LEFT, padx=5)
+
+        # Frame para el buscador de pacientes
+        search_frame = ttk.Frame(self)
         search_frame.pack(fill=tk.X, padx=5, pady=5)
 
         ttk.Label(search_frame, text="Buscar por ID del Paciente:").pack(side=tk.LEFT, padx=5)
@@ -31,29 +38,30 @@ class CitasView(tk.Toplevel):
         ttk.Button(search_frame, text="Buscar", command=self._buscar_paciente).pack(side=tk.LEFT, padx=5)
 
         # Treeview para mostrar pacientes
-        self.tree_pacientes = ttk.Treeview(main_frame, columns=("ID", "Nombre", "Teléfono"), show="headings")
-        self.tree_pacientes.heading("ID", text="Identificador")
-        self.tree_pacientes.heading("Nombre", text="Nombre")
-        self.tree_pacientes.heading("Teléfono", text="Teléfono")
-        self.tree_pacientes.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.tree_pacientes = ttk.Treeview(self, columns=("identificador", "nombre", "telefono"), show="headings")
+        self.tree_pacientes.heading("identificador", text="Identificador")
+        self.tree_pacientes.heading("nombre", text="Nombre")
+        self.tree_pacientes.heading("telefono", text="Teléfono")
+        for col in self.tree_pacientes["columns"]:
+            self.tree_pacientes.column(col, width=120, anchor=tk.W)
+        self.tree_pacientes.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
 
-        # Treeview para mostrar citas
-        self.tree_citas = ttk.Treeview(main_frame, columns=("ID", "Fecha", "Hora", "Odontólogo", "Estado"), show="headings")
-        for col in ("ID", "Fecha", "Hora", "Odontólogo", "Estado"):
-            self.tree_citas.heading(col, text=col)  # Usar col directamente como texto
-            self.tree_citas.column(col, width=120, anchor=tk.CENTER)
-        self.tree_citas.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-
-        # Botón para crear nueva cita (restaurado y posicionado claramente)
-        btn_nueva_cita = ttk.Button(
-            self, 
-            text="Nueva Cita", 
-            command=self._nueva_cita
-        )
-        btn_nueva_cita.pack(pady=20, anchor=tk.CENTER)  # Aumentamos pady y usamos anchor para centrar
+        # Treeview para mostrar citas con nombres de columnas válidos
+        self.tree_citas = ttk.Treeview(self, columns=("id_cita", "paciente", "fecha", "hora", "odontologo", "estado"), show="headings")
+        self.tree_citas.heading("id_cita", text="ID Cita")
+        self.tree_citas.heading("paciente", text="Paciente (ID)")
+        self.tree_citas.heading("fecha", text="Fecha")
+        self.tree_citas.heading("hora", text="Hora")
+        self.tree_citas.heading("odontologo", text="Odontólogo")
+        self.tree_citas.heading("estado", text="Estado")
+        for col in self.tree_citas["columns"]:
+            self.tree_citas.column(col, width=120, anchor=tk.W)
+        self.tree_citas.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
 
         # Vincular la selección en el Treeview de pacientes para actualizar citas
         self.tree_pacientes.bind("<<TreeviewSelect>>", self._on_paciente_select)
+
+        
 
     def _cargar_pacientes(self):
         """Obtiene y muestra todos los pacientes desde la base de datos"""
@@ -75,25 +83,36 @@ class CitasView(tk.Toplevel):
     def _cargar_citas(self):
         """Obtiene y muestra las citas del paciente seleccionado desde la base de datos"""
         try:
+            print(f"Cargando citas para paciente_id: {self.paciente_id}")  # Depuración
             # Limpiar citas actuales
             for item in self.tree_citas.get_children():
                 self.tree_citas.delete(item)
 
             if self.paciente_id:
                 citas = self.controller.db.obtener_citas(self.paciente_id)
+                print(f"Citas obtenidas: {citas}")  # Depuración
                 # Insertar nuevas citas
                 for cita in citas:
                     self.tree_citas.insert("", tk.END, values=(
                         cita.id_cita,
+                        cita.identificador,
                         cita.fecha,
                         cita.hora,
                         cita.odontologo,
-                        cita.estado.capitalize()
+                        cita.estado
                     ))
             else:
-                print("No se seleccionó un paciente, no se cargan citas.")
+                messagebox.showwarning("Advertencia", "Seleccione un paciente para cargar sus citas.")
         except Exception as e:
-            messagebox.showerror("Error", f"Error al cargar citas: {str(e)}")
+            messagebox.showerror("Error", f"Error cargando citas: {str(e)}")
+
+    def _nueva_cita(self):
+        if self.paciente_id:
+            from views.nueva_cita_view import NuevaCitaView
+            NuevaCitaView(self.controller, self.paciente_id)
+            self._cargar_citas()  # Actualizar la lista después de crear
+        else:
+            messagebox.showwarning("Advertencia", "Seleccione un paciente primero")
 
     def _on_paciente_select(self, event):
         """Actualiza las citas cuando se selecciona un paciente en el Treeview"""
@@ -113,9 +132,11 @@ class CitasView(tk.Toplevel):
             return
 
         try:
+            print(f"Buscando paciente con ID: {id_buscado}")  # Depuración
             # Obtener el paciente desde la base de datos
             paciente = self.controller.db.obtener_paciente(id_buscado)
             if paciente:
+                print(f"Paciente encontrado: {paciente.__dict__}")  # Depuración
                 # Limpiar el Treeview de pacientes
                 for item in self.tree_pacientes.get_children():
                     self.tree_pacientes.delete(item)
@@ -139,12 +160,35 @@ class CitasView(tk.Toplevel):
             messagebox.showerror("Error", f"Error al buscar paciente: {str(e)}")
 
     def _nueva_cita(self):
-        if not self.paciente_id:
+        if self.paciente_id:
+            from views.nueva_cita_view import NuevaCitaView
+            NuevaCitaView(self.controller, self.paciente_id)
+            self._cargar_citas()  # Actualizar la lista después de crear
+        else:
             messagebox.showwarning("Advertencia", "Seleccione un paciente primero")
+
+    def _enviar_recordatorio(self):
+        seleccion = self.tree_citas.selection()
+        if not seleccion:
+            messagebox.showwarning("Advertencia", "Seleccione una cita para enviar el recordatorio")
             return
-        print(f"Abriendo NuevaCitaView con paciente_id: {self.paciente_id}")  # Depuración
-        from .nueva_cita_view import NuevaCitaView
-        self.grab_release()  # <--- Liberar el grab antes de abrir NuevaCitaView
-        nueva_cita_window = NuevaCitaView(self.controller, self.paciente_id)
-        nueva_cita_window.lift()
-        nueva_cita_window.focus_set()
+        
+        cita = self.tree_citas.item(seleccion, "values")
+        cita_id = cita[0]  # ID de la cita (si lo usas)
+        paciente_id = cita[1]  # Identificador del paciente
+        try:
+            paciente = self.controller.db.obtener_paciente(paciente_id)
+            citas = self.controller.db.obtener_citas(paciente_id)
+            cita_seleccionada = next((c for c in citas if c.id_cita == cita_id), None) or citas[0]  # Usar la primera si no hay coincidencia exacta
+            if paciente and cita_seleccionada:
+                self.controller.db.enviar_notificacion_cita(paciente.email, cita_seleccionada.fecha, cita_seleccionada.hora)
+                messagebox.showinfo("Éxito", "Recordatorio enviado correctamente")
+            else:
+                messagebox.showerror("Error", "No se pudo encontrar el paciente o la cita")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al enviar recordatorio: {str(e)}")
+    
+    def _cerrar_ventana(self):
+        if 'citas' in self.controller._ventanas_abiertas:
+            del self.controller._ventanas_abiertas['citas']
+        self.destroy()

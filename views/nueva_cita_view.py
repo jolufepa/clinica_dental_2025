@@ -5,6 +5,7 @@ from tkcalendar import Calendar
 from datetime import datetime
 from models.cita import Cita
 from services.database_service import DatabaseService
+from views.styles import configurar_estilos
 
 class NuevaCitaView(tk.Toplevel):
     def __init__(self, controller, paciente_id=None):
@@ -14,10 +15,11 @@ class NuevaCitaView(tk.Toplevel):
         self.title("Nueva Cita")
         self.geometry("400x450")
         self._crear_formulario()
+        configurar_estilos(self)  # Aplicar estilos globales
         self._centrar_ventana()
         self.lift()  # Forzar que esta ventana esté al frente
         self.focus_set()  # Asegurar que tenga el foco al abrirse
-        # Eliminamos transient() para evitar bloqueos modales
+        
 
     def _centrar_ventana(self):
         self.update_idletasks()
@@ -38,8 +40,10 @@ class NuevaCitaView(tk.Toplevel):
         self.entry_hora.pack(fill=tk.X, padx=10)
 
         ttk.Label(self, text="Odontólogo:").pack(pady=5)
-        self.entry_odontologo = ttk.Entry(self)
-        self.entry_odontologo.pack(fill=tk.X, padx=10)
+        odontologos = ["Dra. Pilar", "Dra. Dithssy"]
+        self.combobox_odontologo = ttk.Combobox(self, values=odontologos, state="readonly")
+        self.combobox_odontologo.pack(fill=tk.X, padx=10)
+        self.combobox_odontologo.set(odontologos[0])  # Seleccionar el primer odontólogo por defecto
 
         frame_botones = ttk.Frame(self)
         frame_botones.pack(pady=15)
@@ -58,7 +62,7 @@ class NuevaCitaView(tk.Toplevel):
         try:
             fecha = self.calendario.get_date()
             hora = self.entry_hora.get()
-            odontologo = self.entry_odontologo.get().strip()
+            odontologo = self.combobox_odontologo.get().strip()  # Obtener el odontólogo seleccionado
             
             # Validar formato de hora (HH:MM)
             try:

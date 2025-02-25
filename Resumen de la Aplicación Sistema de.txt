@@ -1,105 +1,201 @@
-**Resumen de la Aplicación: Sistema de Gestión para Clínica Dental**  
-**Versión: 2025**  
+Resumen Exhaustivo de CLINICA_DENTAL_2025
+1. Propósito y Descripción General
+CLINICA_DENTAL_2025 es una aplicación de escritorio desarrollada en Python con Tkinter para gestionar una clínica dental. Utiliza SQLite como base de datos (clinica_dental.db) y sigue un diseño basado en MVC (Modelo-Vista-Controlador). La aplicación incluye funcionalidades para:
+Gestionar pacientes (registro, edición, búsqueda).
+Gestionar citas, visitas, pagos, recetas, y usuarios.
+Permitir el login inicial para usuarios con roles "admin" y "recepción", con seguridad en contraseñas usando bcrypt.
+Proporcionar una interfaz gráfica con ventanas modales y vistas como MenuPrincipalView, PacientesView, CitasView, PagosView, RecetasView, VisitasView, GestionUsuariosView, y otras.
+La estructura principal incluye:
+Modelos (models/*.py): Clases para Paciente, Cita, Visita, Pago, Receta, y otros datos.
+Vistas (views/*.py): Interfaz gráfica con Tkinter para cada módulo (por ejemplo, login_view.py, menu_principal_view.py, etc.).
+Controladores (controllers/*.py): main_controller.py que coordina las vistas y acciones.
+Servicios (services/*.py): database_service.py como Singleton para manejar SQLite y bcrypt para seguridad.
+La aplicación se ejecuta desde main.py, iniciando con LoginView y luego mostrando MenuPrincipalView según el rol del usuario.
+2. Funcionalidades Implementadas
+Hemos avanzado significativamente en las siguientes áreas:
+Login Inicial:
+Usuarios con roles "admin" y "recepción" pueden iniciar sesión con contraseñas protegidas por bcrypt.
+Implementado en login_view.py, database_service.py, y main.py.
+Gestión de Pacientes:
+Registro, edición, búsqueda, y listado de pacientes en nuevo_paciente_view.py y pacientes_view.py.
+Normalización de identificador (DNI/NIE) y nombres a mayúsculas para evitar errores.
+Gestión de Citas, Visitas, Pagos, y Recetas:
+Módulos funcionales para gestionar citas (citas_view.py, nueva_cita_view.py), visitas (visitas_view.py), pagos (pagos_view.py, nuevo_pago_view.py), y recetas (recetas_view.py, nueva_receta_view.py).
+Búsquedas y listados en Treeview con validaciones.
+Gestión de Usuarios:
+Implementado en gestion_usuarios_view.py y nuevo_usuario_view.py para listar, crear, editar, y eliminar usuarios con roles "admin" o "recepción".
+Contraseñas ahora se hashean con bcrypt y se verifican correctamente en el login.
+Seguridad:
+Integración de bcrypt para hashear y verificar contraseñas, asegurando seguridad en el login y gestión de usuarios.
+Migración de contraseñas en texto plano a hashes bcrypt en la base de datos.
+Interfaz Gráfica:
+Ventanas modales con Toplevel, centrado, y validaciones en Tkinter.
+MenuPrincipalView como punto central para acceder a módulos según el rol.
+Base de Datos:
+SQLite con tablas para pacientes, usuarios, citas, visitas, pagos, y recetas.
+DatabaseService como Singleton con threading.Lock para evitar bloqueos database is locked.
+3. Errores Corregidos
+Hemos identificado y solucionado numerosos errores a lo largo de nuestro trabajo. Aquí están los principales:
+Normalización de Mayúsculas:
+Problema inicial: El buscador de pacientes no encontraba identificador (DNI/NIE) si la última letra estaba en minúscula. Corregido normalizando a mayúsculas en nuevo_paciente_view.py, pacientes_view.py, y database_service.py con UPPER() en SQL.
+Errores en Tkinter (Ventanas Cerradas o Modales):
+Error al cerrar MenuPrincipalView y volver a LoginView: Corregido ajustando cerrar_sesion en main_controller.py para usar withdraw() y deiconify() en lugar de destroy(), manteniendo la raíz tk.Tk.
+Problema con grab_set() causando problemas con messagebox: Eliminado o manejado correctamente en vistas como LoginView y MenuPrincipalView.
+Bloqueos de Base de Datos (database is locked):
+Error al actualizar usuarios o pacientes debido a accesos concurrentes en SQLite. Corregido con threading.Lock en DatabaseService y transacciones explícitas (BEGIN TRANSACTION, COMMIT, ROLLBACK).
+Problemas con bcrypt y Contraseñas:
+Contraseñas no guardadas/verificadas correctamente (por ejemplo, Jolufepa1976 para "jolu" o "admin1"). Corregido migrando contraseñas en texto plano a hashes bcrypt, depurando codificación (utf-8), y ajustando hash_password y verify_password en database_service.py.
+Error Invalid salt al verificar contraseñas en texto plano. Resuelto migrando todas las contraseñas a hashes bcrypt y ajustando verify_password para manejar texto plano como falso.
+Atributos Faltantes en Vistas:
+AttributeError: 'MenuPrincipalView' object has no attribute 'actualizar_lista': Corregido usando self.controller.actualizar_lista_usuarios() en nuevo_usuario_view.py para actualizar GestionUsuariosView a través de MainController.
+Problemas con sqlite3.Connection.closed en Python 3.13:
+Error AttributeError: 'sqlite3.Connection' object has no attribute 'closed'. Corregido reemplazando self.conn.closed con try/except para verificar la conexión con self.cursor.execute("SELECT 1") en _asegurar_conexion_abierta.
+Errores de Importación Dinámica:
+ModuleNotFoundError: No module named 'views.gestionusuarios_view': Corregido ajustando _abrir_ventana en main_controller.py para mapear nombres de módulos correctamente (por ejemplo, GestionUsuariosView → gestion_usuarios_view).
+Contraseñas Aleatorias al Editar Usuarios Críticos:
+Problema al editar "admin1" generando contraseñas inesperadas. Corregido con validaciones en nuevo_usuario_view.py para manejar "********", confirmar cambios en usuarios críticos, y depurar con bcrypt.
+Errores de Concurrencia en SQLite:
+Ajustado con threading.Lock, transacciones, y timeout=10.0 en sqlite3.connect.
+4. Avances Realizados
+La aplicación está funcionalmente completa para las principales funcionalidades (pacientes, citas, pagos, recetas, usuarios).
+Contraseñas seguras con bcrypt, gestionadas correctamente en login y gestión de usuarios.
+Interfaz gráfica robusta con Tkinter, incluyendo ventanas modales, búsquedas, y listados en Treeview.
+Base de datos SQLite bien estructurada con relaciones (por ejemplo, pacientes vinculados a citas, visitas, etc.).
+Normalización de datos (mayúsculas en identificador y nombres) y manejo de concurrencia para evitar bloqueos.
+Mensajes de usuario claros con messagebox para errores y confirmaciones.
+5. Lo que Falta por Hacer
+Aunque la aplicación está avanzada, hay áreas que podrían mejorarse o completarse:
+Interfaz de Usuario:
+Mejorar la estética de las vistas con estilos más personalizados en ttk.Style (por ejemplo, colores, fuentes, y tamaños de widgets).
+Añadir funcionalidades como exportación de datos a CSV/PDF, impresión de informes (por ejemplo, historial de pacientes, pagos, o citas).
+Implementar validaciones adicionales en formularios (por ejemplo, formato de email, longitud mínima de contraseñas, fechas válidas).
+Seguridad Adicional:
+Implementar políticas de contraseñas más estrictas (longitud mínima, caracteres especiales, etc.) en nuevo_usuario_view.py.
+Añadir un sistema de recuperación/restablecimiento de contraseñas para usuarios (por ejemplo, enviar un correo o usar preguntas de seguridad).
+Proteger contra ataques comunes como fuerza bruta en el login (por ejemplo, limitar intentos fallidos o usar temporizadores).
+Funcionalidades Pendientes:
+Gestionar historiales médicos completos de pacientes, incluyendo alergias, tratamientos previos, y notas adicionales, más allá de lo básico en paciente.py.
+Implementar notificaciones o recordatorios automáticos para citas (por ejemplo, usando un sistema de email o SMS, que requeriría una biblioteca externa como smtplib o twilio).
+Añadir reportes financieros (ingresos por pagos, saldos pendientes) en pagos_view.py.
+Implementar un módulo de inventario para materiales dentales o medicamentos relacionados con recetas.
+Optimización de Desempeño:
+Optimizar consultas SQL en database_service.py si la base de datos crece (por ejemplo, usando índices en columnas frecuentemente consultadas como username o identificador).
+Evaluar el uso de PRAGMA journal_mode=WAL para mejorar la concurrencia en SQLite si hay múltiples usuarios o alto tráfico.
+Pruebas y Documentación:
+Crear pruebas unitarias con unittest o pytest para validar las funcionalidades (por ejemplo, login, creación de usuarios, gestión de pacientes).
+Documentar el código con comentarios detallados y un README con instrucciones de instalación, uso, y requisitos.
+Mantenimiento y Escalabilidad:
+Asegurar compatibilidad con versiones futuras de Python (por ejemplo, más allá de 3.13) revisando cambios en sqlite3 o bcrypt.
+Preparar la aplicación para soportar múltiples clínicas o usuarios simultáneos, si es necesario, revisando la concurrencia en SQLite o migrando a otra base de datos (por ejemplo, PostgreSQL) para alta concurrencia.
+6. Notas Adicionales
+Entorno y Dependencias:
+La aplicación usa Python 3.13, Tkinter (estándar), SQLite3 (estándar), bcrypt (instalado con pip install bcrypt), y threading (estándar).
+Asegúrate de que el entorno virtual esté configurado correctamente (d:/clinica_dental_2025/.venv) y que las dependencias estén instaladas.
+Estructura de Directorios:
+main.py: Punto de entrada.
+controllers/: main_controller.py.
+models/: paciente.py, cita.py, visita.py, pago.py, receta.py.
+services/: database_service.py.
+views/: login_view.py, menu_principal_view.py, pacientes_view.py, nuevo_paciente_view.py, citas_view.py, nueva_cita_view.py, pagos_view.py, nuevo_pago_view.py, recetas_view.py, nueva_receta_view.py, visitas_view.py, gestion_usuarios_view.py, nuevo_usuario_view.py.
+Base de Datos (clinica_dental.db):
+Tablas: pacientes, usuarios, citas, visitas, pagos, recetas.
+Relaciones: Por ejemplo, citas vinculadas a pacientes, visitas a citas, etc.
+Problemas Resueltos en este Chat:
+Normalización de mayúsculas en identificador y nombres.
+Errores en Tkinter con ventanas (cierre, modales, focus).
+Bloqueos de SQLite (database is locked) con threading.Lock y transacciones.
+Problemas con bcrypt (contraseñas no coincidentes, hashes incorrectos, migración de texto plano a hashes).
+Errores de importación dinámica en main_controller.py.
+Problemas con sqlite3.Connection.closed en Python 3.13.
+Gestión de usuarios, incluyendo seguridad con bcrypt y validaciones para "admin1".
+Pendientes en este Chat:
+Las mejoras y funcionalidades adicionales mencionadas en "Lo que Falta por Hacer".
 
----
 
-### **Objetivo**  
-Desarrollar un sistema integral para gestionar pacientes, visitas médicas, pagos, citas y usuarios en una clínica dental, facilitando la administración diaria y mejorando la eficiencia operativa.
 
----
 
-### **Características Principales**  
-1. **Módulos Principales**:  
-   - **Pacientes**:  
-     - Registrar, editar y eliminar pacientes.  
-     - Campos: Identificador único, nombre, fecha de nacimiento, teléfono, email, dirección, historial médico.  
-   - **Visitas Médicas**:  
-     - Registrar consultas con detalles como fecha, motivo, diagnóstico, tratamiento, odontólogo y estado.  
-     - Asociación automática a un paciente existente.  
-   - **Pagos**:  
-     - Gestión de transacciones financieras vinculadas a pacientes.  
-   - **Citas**:  
-     - Programación y seguimiento de citas.  
-   - **Usuarios**:  
-     - Roles: Administrador (`admin`) y Recepción (`recepcion`).  
-     - Autenticación y control de acceso.  
 
-2. **Tecnologías Utilizadas**:  
-   - **Lenguaje**: Python 3.  
-   - **Interfaz Gráfica**: Tkinter (biblioteca estándar de Python).  
-   - **Base de Datos**: SQLite (`clinica_dental.db`).  
-   - **Arquitectura**: Modelo-Vista-Controlador (MVC).  
+ Enfocarse en la Experiencia de Usuario
+Mejoras Prioritarias:
 
-3. **Estructura del Proyecto**:  
-   ```plaintext
-   CLINICA_DENTAL_2025/
-   ├── controllers/          # Lógica de control
-   │   ├── main_controller.py
-   │   └── ...
-   ├── models/              # Modelos de datos
-   │   ├── paciente.py
-   │   ├── visita.py
-   │   └── ...
-   ├── views/               # Interfaces gráficas
-   │   ├── pacientes_view.py
-   │   ├── nueva_visita_view.py
-   │   └── ...
-   ├── services/            # Servicios de base de datos
-   │   └── database_service.py
-   └── main.py              # Punto de entrada
-   ```
+Interfaz más intuitiva:
 
----
+Usar ttkthemes para estilos modernos en Tkinter.
 
-### **Funcionalidades Clave**  
-- **Base de Datos Centralizada**:  
-  - Tablas: `pacientes`, `visitas`, `usuarios`, `pagos`, `citas`.  
-  - Integridad referencial (claves foráneas).  
-- **Interfaz Intuitiva**:  
-  - Ventanas modales para evitar conflictos de enfoque.  
-  - Actualización automática de listas (ej: pacientes, visitas).  
-- **Seguridad**:  
-  - Usuarios con roles y contraseñas encriptadas (pendiente de implementar).  
+Agregar tooltips (información al pasar el mouse) en botones complejos.
 
----
+Exportación de datos básica:
 
-### **Problemas Conocidos y Soluciones Aplicadas**  
-1. **Edición de Pacientes**:  
-   - **Error**: Campos no editables.  
-   - **Solución**: Bloquear el campo `identificador` y asegurar la actualización de todos los campos en la base de datos.  
+Generar PDFs sencillos con fpdf2 para historiales médicos o recibos de pago.
 
-2. **Guardar Visitas**:  
-   - **Error**: `DatabaseService` sin método `guardar_vista`.  
-   - **Solución**: Implementar el método y validar la existencia del paciente.  
+Validaciones en tiempo real:
 
-3. **Ventanas no Modales**:  
-   - **Error**: Interacción simultánea entre ventanas.  
-   - **Solución**: Usar `grab_set()` y `wait_window()` para forzar modalidad.  
+Verificar formato de DNI/NIE, fechas futuras en citas, o campos obligatorios al escribir.
+3. Optimización Ligera del Código
+Acciones Clave:
 
-4. **Carga de Datos**:  
-   - **Error**: Listas vacías en `visitas_view.py`.  
-   - **Solución**: Implementar `obtener_visitas` en `DatabaseService`.  
+Refactorizar consultas repetitivas:
+# Ejemplo: Función reutilizable para buscar pacientes
+def buscar_paciente(identificador):
+    return DatabaseService().execute_query(
+        "SELECT * FROM pacientes WHERE UPPER(identificador) = ?", 
+        (identificador.upper(),)
+Evitar bloqueos en SQLite:
 
----
+Usar threading o asyncio para operaciones largas (ej. generación de informes), evitando que la interfaz se congele.
 
-### **Próximos Pasos (To-Do)**  
-- **Mejoras en la Interfaz**:  
-  - Añadir validación de formatos (ej: fecha, email).  
-  - Implementar búsqueda y filtrado en listas.  
-- **Funcionalidades Pendientes**:  
-  - Módulo de reportes (estadísticas, historiales).  
-  - Encriptación de contraseñas.  
-- **Depuración**:  
-  - Revisar el manejo de excepciones en toda la aplicación.  
-  - Optimizar la actualización de ventanas para evitar redundancias.  
 
----
+4. Seguridad Básica pero Efectiva
+Mejoras Recomendadas:
 
-### **Notas para Retomar el Proyecto**  
-- **Base de Datos**: Verificar las tablas y relaciones en `clinica_dental.db`.  
-- **Controladores**: Revisar el flujo de datos entre `main_controller.py` y las vistas.  
-- **Errores Recurrentes**:  
-  - Asegurar que los métodos de la base de datos estén implementados y coincidan con las llamadas desde las vistas.  
-  - Validar que los parámetros pasados entre ventanas sean consistentes (ej: `paciente_id`).  
+Política de contraseñas: Longitud mínima (8 caracteres) y evitar contraseñas comunes como "123456".
 
-Este resumen servirá como guía para continuar el desarrollo, corregir errores pendientes y expandir las funcionalidades de la aplicación. ¡Buen descanso! 😊
+Bloquear la aplicación tras intentos fallidos:
+# En login_view.py
+MAX_INTENTOS = 3
+intentos_fallidos = 0
+
+def verificar_login():
+    global intentos_fallidos
+    if intentos_fallidos >= MAX_INTENTOS:
+        messagebox.showerror("Bloqueado", "Demasiados intentos fallidos. Espere 5 minutos.")
+        return
+    # ... lógica de login ...
+
+5. Preparación para Futuras Ampliaciones (Opcional)
+Si hay posibilidad de crecimiento moderado (ej. 2-3 sedes o 50 registros/día):
+
+Migrar a MySQL Embedded o DuckDB: Bases de datos ligeras pero más potentes que SQLite, sin requerir servidor.
+
+Centralizar backups: Script automático para copiar clinica_dental.db a la nube (ej. Google Drive vía API).
+
+Logs de actividad: Registrar acciones críticas (ej. eliminación de pacientes) en un archivo .log.
+6. Documentación y Mantenibilidad
+Acciones Clave:
+
+Comentarios en el código: Explicar funciones complejas o decisiones técnicas.
+
+README.md:
+
+Instrucciones para instalar dependencias (bcrypt, fpdf2).
+
+Diagrama de la estructura de la base de datos.
+
+Script de respaldo: Archivo .bat o .sh que copie la base de datos a una carpeta segura.
+
+7. Ejemplo de Mejora Realista
+Contexto: Exportar un recibo de pago en PDF.
+
+Implementación con fpdf2:
+# En nuevo_pago_view.py
+from fpdf import FPDF
+
+def generar_recibo_pago(paciente, monto, fecha):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt=f"Recibo de Pago - {paciente.nombre}", ln=1, align="C")
+    pdf.cell(200, 10, txt=f"Monto: ${monto}", ln=1)
+    pdf.cell(200, 10, txt=f"Fecha: {fecha}", ln=1)
+    pdf.output(f"recibo_{paciente.identificador}.pdf")
+    messagebox.showinfo("Éxito", "Recibo generado en la carpeta del sistema.")

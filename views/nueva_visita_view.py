@@ -1,78 +1,118 @@
-# views/nueva_visita_view.py
+from datetime import datetime
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
 import tkinter as tk
 from tkinter import ttk, messagebox
 from models.visita import Visita
+from services.database_service import DatabaseService
+from views.styles import configurar_estilos
+from views.tooltip import ToolTip  # Importar la clase ToolTip
 
 class NuevaVisitaView(tk.Toplevel):
     def __init__(self, controller, paciente_id):
         super().__init__()
         self.controller = controller
-        # Asegurarse de que paciente_id sea una cadena y no None
-        self.paciente_id = str(paciente_id) if paciente_id else ""
+        self.paciente_id = paciente_id  # Almacenar el paciente_id recibido
         self.title("Nueva Visita")
-        self.geometry("500x400")
-        self._crear_widgets()
-        self.grab_set()  # Ventana modal
+        self.geometry("500x600")  # Tamaño suficiente para todos los campos
+        self.resizable(True, True)  # Permitir redimensionar
+        self._crear_formulario()
+        configurar_estilos(self)  # Aplicar estilos globales
+        self._centrar_ventana()
+        self.lift()
+        self.focus_set()
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
 
-    def _crear_widgets(self):
-        # Campo para mostrar el ID del paciente (no editable)
-        ttk.Label(self, text="Paciente ID:").grid(row=0, column=0, padx=5, pady=5)
-        self.entry_paciente = ttk.Entry(self)
-        self.entry_paciente.insert(0, self.paciente_id)  # Insertar el ID del paciente
-        self.entry_paciente.grid(row=0, column=1, padx=5, pady=5)
-        self.entry_paciente.configure(state="readonly")  # Hacerlo de solo lectura después de insertar
+    def _on_close(self):
+        self.destroy()
 
-        # Campos adicionales para la visita
-        ttk.Label(self, text="Fecha (YYYY-MM-DD):").grid(row=1, column=0, padx=5, pady=5)
-        self.entry_fecha = ttk.Entry(self)
-        self.entry_fecha.grid(row=1, column=1, padx=5, pady=5)
+    def _crear_formulario(self):
+        # Frame principal para organizar los widgets
+        main_frame = ttk.Frame(self)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        ttk.Label(self, text="Motivo:").grid(row=2, column=0, padx=5, pady=5)
-        self.entry_motivo = ttk.Entry(self)
-        self.entry_motivo.grid(row=2, column=1, padx=5, pady=5)
+        # Campos del formulario usando pack para un diseño flexible
+        campos = [
+            ("Identificador del Paciente:", "entry_identificador", True),  # Readonly
+            ("Fecha (YYYY-MM-DD):", "entry_fecha"),
+            ("Motivo:", "entry_motivo"),
+            ("Diagnóstico:", "entry_diagnostico"),
+            ("Tratamiento:", "entry_tratamiento"),
+            ("Odontólogo:", "entry_odontologo"),
+            ("Estado:", "entry_estado")
+        ]
 
-        ttk.Label(self, text="Diagnóstico:").grid(row=3, column=0, padx=5, pady=5)
-        self.entry_diagnostico = ttk.Entry(self)
-        self.entry_diagnostico.grid(row=3, column=1, padx=5, pady=5)
+        for texto, variable, *extras in campos:
+            readonly = extras[0] if extras else False  # Determinar si es readonly
+            ttk.Label(main_frame, text=texto).pack(fill=tk.X, pady=5)
+            entry = ttk.Entry(main_frame, state='readonly' if readonly else 'normal')
+            entry.pack(fill=tk.X, padx=5, pady=2)
+            if readonly and variable == "entry_identificador":
+                entry.configure(state='normal')  # Temporalmente editable para insertar
+                entry.insert(0, self.paciente_id or "")  # Insertar paciente_id recibido
+                entry.configure(state='readonly')  # Volver a bloquear
+            setattr(self, variable, entry)
 
-        ttk.Label(self, text="Tratamiento:").grid(row=4, column=0, padx=5, pady=5)
-        self.entry_tratamiento = ttk.Entry(self)
-        self.entry_tratamiento.grid(row=4, column=1, padx=5, pady=5)
+        # Establecer valor predeterminado para "Estado"
+        self.entry_estado.insert(0, "Pendiente")
 
-        ttk.Label(self, text="Odontólogo:").grid(row=5, column=0, padx=5, pady=5)
-        self.entry_odontologo = ttk.Entry(self)
-        self.entry_odontologo.grid(row=5, column=1, padx=5, pady=5)
+        # Frame para los botones
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=10)
 
-        # Botón "Guardar Visita"
-        ttk.Button(
-            self, 
-            text="Guardar Visita", 
-            command=self._guardar_visita
-        ).grid(row=6, column=0, columnspan=2, pady=20)
+        guardar_btn = ttk.Button(button_frame, text="Guardar", command=self._guardar_visita)
+        guardar_btn.pack(side=tk.LEFT, padx=5)
+        ToolTip(guardar_btn, "Guarda la nueva visita en la base de datos")  # Añadir tooltip
+
+        cancelar_btn = ttk.Button(button_frame, text="Cancelar", command=self.destroy)
+        cancelar_btn.pack(side=tk.LEFT, padx=5)
+        ToolTip(cancelar_btn, "Cierra esta ventana sin guardar")  # Añadir tooltip
+
+    def _centrar_ventana(self):
+        self.update_idletasks()
+        ancho = self.winfo_width()
+        alto = self.winfo_height()
+        x = (self.winfo_screenwidth() // 2) - (ancho // 2)
+        y = (self.winfo_screenheight() // 2) - (alto // 2)
+        self.geometry(f'+{x}+{y}')
 
     def _guardar_visita(self):
-        if not self.paciente_id:  # Si no hay ID de paciente
-            messagebox.showerror("Error", "No se ha asignado un paciente")
+        identificador = self.entry_identificador.get().strip()
+        fecha = self.entry_fecha.get().strip()
+        motivo = self.entry_motivo.get().strip()
+        diagnostico = self.entry_diagnostico.get().strip()
+        tratamiento = self.entry_tratamiento.get().strip()
+        odontologo = self.entry_odontologo.get().strip()
+        estado = self.entry_estado.get().strip()
+
+        if not all([identificador, fecha, motivo, odontologo, estado]):
+            messagebox.showerror("Error", "Todos los campos obligatorios deben estar llenos")
             return
-        
-        nueva_visita = Visita(
-            identificador=self.paciente_id,
-            fecha=self.entry_fecha.get(),
-            motivo=self.entry_motivo.get(),
-            diagnostico=self.entry_diagnostico.get(),
-            tratamiento=self.entry_tratamiento.get(),
-            odontologo=self.entry_odontologo.get(),
-            estado="Pendiente",
-            id_visita=None  # Opcional, se genera automáticamente en la base de datos
-        )
 
         try:
-            if self.controller.db.guardar_vista(nueva_visita):
-                messagebox.showinfo("Éxito", "Visita registrada")
+            # Validar formato de fecha (YYYY-MM-DD)
+            datetime.strptime(fecha, "%Y-%m-%d")
+
+            nueva_visita = Visita(
+                identificador=identificador,
+                fecha=fecha,
+                motivo=motivo,
+                diagnostico=diagnostico,
+                tratamiento=tratamiento,
+                odontologo=odontologo,
+                estado=estado
+            )
+
+            db = DatabaseService()
+            if db.guardar_vista(nueva_visita):
                 self.controller.actualizar_lista_visitas()
+                messagebox.showinfo("Éxito", "Visita creada correctamente")
                 self.destroy()
             else:
-                messagebox.showerror("Error", "No se pudo guardar la visita")
+                messagebox.showerror("Error", "No se pudo crear la visita")
+        except ValueError as e:
+            messagebox.showerror("Error", f"Formato de fecha inválido: {str(e)}")
         except Exception as e:
-            error_msg = "Error: El paciente no existe" if "paciente no existe" in str(e) else f"Error: {str(e)}"
-            messagebox.showerror("Error", error_msg)
+            messagebox.showerror("Error", f"Error al guardar: {str(e)}")

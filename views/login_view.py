@@ -2,14 +2,16 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from services.database_service import DatabaseService
+from views.styles import configurar_estilos
 
-class LoginView(tk.Tk):  # LoginView es la ventana raíz (tk.Tk)
-    def __init__(self):
-        super().__init__()  # No pasamos master, ya que es la raíz
-        self.title("Login - Clínica Dental")
-        self.geometry("300x200")
-        self.resizable(False, False)
+class LoginView(tk.Toplevel):
+    def __init__(self, master=None):
+        super().__init__(master=master)  # Usar el master proporcionado por MainController
+        self.title("Inicio de Sesión")
+        self.geometry("400x300")
         self._crear_widgets()
+        configurar_estilos(self)  # Aplicar estilos globales
+        self.protocol("WM_DELETE_WINDOW", self._on_close)  # Manejar cierre de la ventana
         self._centrar_ventana()
 
     def _centrar_ventana(self):
@@ -23,37 +25,28 @@ class LoginView(tk.Tk):  # LoginView es la ventana raíz (tk.Tk)
     def _crear_widgets(self):
         ttk.Label(self, text="Usuario:").pack(pady=5)
         self.entry_usuario = ttk.Entry(self)
-        self.entry_usuario.pack(pady=5, fill=tk.X, padx=10)
+        self.entry_usuario.pack(pady=5)
 
         ttk.Label(self, text="Contraseña:").pack(pady=5)
         self.entry_password = ttk.Entry(self, show="*")
-        self.entry_password.pack(pady=5, fill=tk.X, padx=10)
+        self.entry_password.pack(pady=5)
 
-        frame_botones = ttk.Frame(self)
-        frame_botones.pack(pady=15)
-        
-        ttk.Button(frame_botones, text="Iniciar Sesión", 
-                  command=self._iniciar_sesion).pack(side=tk.LEFT, padx=5)
-        ttk.Button(frame_botones, text="Cancelar", 
-                  command=self.destroy).pack(side=tk.LEFT, padx=5)
+        ttk.Button(self, text="Iniciar Sesión", command=self._iniciar_sesion).pack(pady=10)
 
     def _iniciar_sesion(self):
         usuario = self.entry_usuario.get()
         password = self.entry_password.get()
-        
-        if not usuario or not password:
-            messagebox.showerror("Error", "Por favor, ingrese usuario y contraseña")
-            return
-
         db = DatabaseService()
         rol = db.verificar_usuario(usuario, password)
-        
         if rol:
-            self.withdraw()  # Ocultar LoginView en lugar de destruirla
-            print(f"Ocultando LoginView, raíz actual: {tk._default_root}")  # Depuración
             from controllers.main_controller import MainController
-            from views.menu_principal_view import MenuPrincipalView
-            main_controller = MainController(rol)
-            # MenuPrincipalView se abrirá como Toplevel usando esta raíz
+            # Crear MainController y pasar la referencia a LoginView
+            self.controller = MainController(rol, master=self.master)
+            self.controller.login_view = self  # Informar a MainController que este es el LoginView
+            self.withdraw()  # Ocultar login al iniciar sesión
         else:
             messagebox.showerror("Error", "Usuario o contraseña incorrectos")
+
+    def _on_close(self):
+        # Ocultar en lugar de destruir para que MainController pueda manejarla
+        self.withdraw()
