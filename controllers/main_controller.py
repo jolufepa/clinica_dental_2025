@@ -22,7 +22,7 @@ class MainController:
     def _iniciar_aplicacion(self):
         # Abrir directamente MenuPrincipalView con un rol predeterminado para pruebas
         self.vista_principal = MenuPrincipalView(self, self.rol, master=self.master)
-        configurar_estilos(self)  # Aplicar estilos globales
+        configurar_estilos(self.vista_principal)  # Aplicar estilos a la ventana principal (MenuPrincipalView)
         self._centrar_ventana()
         self.vista_principal.protocol("WM_DELETE_WINDOW", self._cerrar_aplicacion)
         self.vista_principal.deiconify()  # Asegura que se muestre
@@ -65,6 +65,7 @@ class MainController:
                 modulo = __import__(f'views.{modulo_nombre}', fromlist=[nombre_vista])
                 clase_vista = getattr(modulo, nombre_vista)
                 self._ventanas_abiertas[clave] = clase_vista(self, *args)
+                configurar_estilos(self._ventanas_abiertas[clave])  # Aplicar estilos a las nuevas ventanas
             except ImportError as e:
                 messagebox.showerror("Error", f"No se pudo cargar la vista: {str(e)}")
         else:
@@ -129,7 +130,6 @@ class MainController:
         except Exception as e:
             print(f"Error al cerrar la conexión: {str(e)}")
 
-        # No necesitamos abrir LoginView aquí, ya que lo hemos deshabilitado para pruebas
         if self.master:
             self.master.withdraw()
     
