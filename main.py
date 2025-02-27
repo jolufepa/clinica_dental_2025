@@ -1,4 +1,4 @@
-# main.py
+# ARCHIVO main.py
 import tkinter as tk
 from controllers.main_controller import MainController
 

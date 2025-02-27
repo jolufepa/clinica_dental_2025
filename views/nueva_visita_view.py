@@ -1,3 +1,6 @@
+# ARCHIVO nueva_visita_view.py
+
+
 from datetime import datetime
 import sys
 from pathlib import Path
@@ -36,7 +39,7 @@ class NuevaVisitaView(tk.Toplevel):
         # Campos del formulario usando pack para un diseño flexible
         campos = [
             ("Identificador del Paciente:", "entry_identificador", True),  # Readonly
-            ("Fecha (YYYY-MM-DD):", "entry_fecha"),
+            ("Fecha (DD/MM/YY):", "entry_fecha"),  # Cambiado de YYYY-MM-DD a DD/MM/YY
             ("Motivo:", "entry_motivo"),
             ("Diagnóstico:", "entry_diagnostico"),
             ("Tratamiento:", "entry_tratamiento"),
@@ -92,12 +95,16 @@ class NuevaVisitaView(tk.Toplevel):
             return
 
         try:
-            # Validar formato de fecha (YYYY-MM-DD)
-            datetime.strptime(fecha, "%Y-%m-%d")
+            # Validar y convertir fecha de DD/MM/YY a YYYY-MM-DD
+            try:
+                fecha_sql = datetime.strptime(fecha, "%d/%m/%y").strftime("%Y-%m-%d")
+            except ValueError as ve:
+                raise ValueError("Formato de fecha inválido. Usa DD/MM/YY (por ejemplo, 25/02/25)")
 
             nueva_visita = Visita(
+                id_visita=None,  # ID se genera automáticamente en la base de datos
                 identificador=identificador,
-                fecha=fecha,
+                fecha=fecha_sql,  # Usar el formato YYYY-MM-DD para la base de datos
                 motivo=motivo,
                 diagnostico=diagnostico,
                 tratamiento=tratamiento,
@@ -106,13 +113,13 @@ class NuevaVisitaView(tk.Toplevel):
             )
 
             db = DatabaseService()
-            if db.guardar_vista(nueva_visita):
+            if db.guardar_visita(nueva_visita):
                 self.controller.actualizar_lista_visitas()
                 messagebox.showinfo("Éxito", "Visita creada correctamente")
                 self.destroy()
             else:
                 messagebox.showerror("Error", "No se pudo crear la visita")
-        except ValueError as e:
-            messagebox.showerror("Error", f"Formato de fecha inválido: {str(e)}")
+        except ValueError as ve:
+            messagebox.showerror("Error", f"Formato de fecha inválido o datos inválidos: {str(ve)}")
         except Exception as e:
             messagebox.showerror("Error", f"Error al guardar: {str(e)}")

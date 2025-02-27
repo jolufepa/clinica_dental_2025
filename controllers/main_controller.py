@@ -1,4 +1,4 @@
-# controllers/main_controller.py
+# ARCHIVO controllers/main_controller.py
 import tkinter as tk
 from tkinter import ttk, messagebox
 from services.database_service import DatabaseService
@@ -57,6 +57,17 @@ class MainController:
             modulo_nombre = nombre_vista.lower().replace('view', '_view')
             modulo_mapeo = {
                 'GestionUsuariosView': 'gestion_usuarios_view',
+                'NuevoPacienteView': 'nuevo_paciente_view',
+                'EditarPacienteView': 'editar_paciente_view',
+                'NuevaCitaView': 'nueva_cita_view',
+                'EditarCitaView': 'editar_cita_view',
+                'NuevaVisitaView': 'nueva_visita_view',
+                'EditarVisitaView': 'editar_visita_view',
+                'NuevoPagoView': 'nuevo_pago_view',
+                'EditarPagoView': 'editar_pago_view',
+                'CitasView': 'citas_view',  # Añadido
+                'PagosView': 'pagos_view',  # Añadido
+                'VisitasView': 'visitas_view'  # Añadido (si existe)
             }
             if nombre_vista in modulo_mapeo:
                 modulo_nombre = modulo_mapeo[nombre_vista]
@@ -65,7 +76,7 @@ class MainController:
                 modulo = __import__(f'views.{modulo_nombre}', fromlist=[nombre_vista])
                 clase_vista = getattr(modulo, nombre_vista)
                 self._ventanas_abiertas[clave] = clase_vista(self, *args)
-                configurar_estilos(self._ventanas_abiertas[clave])  # Aplicar estilos a las nuevas ventanas
+                configurar_estilos(self._ventanas_abiertas[clave])
             except ImportError as e:
                 messagebox.showerror("Error", f"No se pudo cargar la vista: {str(e)}")
         else:
@@ -88,20 +99,20 @@ class MainController:
             ventana_pacientes.update()
 
     def actualizar_lista_visitas(self):
-        if 'visitas' in self._ventanas_abiertas:
-            self._ventanas_abiertas['visitas']._cargar_visitas()
+        if 'pacientes' in self._ventanas_abiertas and self._ventanas_abiertas['pacientes'].winfo_exists():
+            self._ventanas_abiertas['pacientes']._cargar_visitas()
 
     def actualizar_lista_citas(self):
-        if 'citas' in self._ventanas_abiertas and self._ventanas_abiertas['citas'].winfo_exists():
-            self._ventanas_abiertas['citas']._cargar_citas()
+        if 'pacientes' in self._ventanas_abiertas and self._ventanas_abiertas['pacientes'].winfo_exists():
+            self._ventanas_abiertas['pacientes']._cargar_citas()
 
     def actualizar_lista_usuarios(self):
         if 'usuarios' in self._ventanas_abiertas:
             self._ventanas_abiertas['usuarios']._cargar_usuarios()
 
     def actualizar_lista_pagos(self):
-        if 'pagos' in self._ventanas_abiertas:
-            self._ventanas_abiertas['pagos']._cargar_pagos()
+        if 'pacientes' in self._ventanas_abiertas and self._ventanas_abiertas['pacientes'].winfo_exists():
+            self._ventanas_abiertas['pacientes']._cargar_pagos()
 
     def obtener_pacientes(self):
         return self.db.obtener_pacientes()

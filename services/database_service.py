@@ -1,7 +1,8 @@
-# services/database_service.py
+# ARCHIVO  services/database_service.py
 import sqlite3
 from datetime import datetime
 import threading
+from tkinter import messagebox
 from models.paciente import Paciente
 from models.visita import Visita
 from models.pago import Pago
@@ -184,17 +185,22 @@ class DatabaseService:
                     pass
 
     def eliminar_paciente(self, identificador):
+        """Elimina un paciente específico por su identificador, manejando errores y transacciones."""
         self._asegurar_conexion_abierta()
-        self.cursor.execute("DELETE FROM pacientes WHERE identificador = ?", (identificador,))
-        self.conn.commit()
+        try:
+            # Verificar que el paciente existe antes de intentar eliminar
+            self.cursor.execute("SELECT identificador FROM pacientes WHERE identificador = ?", (identificador,))
+            if not self.cursor.fetchone():
+                raise ValueError(f"No se encontró el paciente con identificador {identificador}")
 
-    def existe_identificador(self, identificador: str) -> bool:
-        """Verifica si un identificador ya está registrado en la base de datos"""
-        self.cursor.execute(
-            "SELECT identificador FROM pacientes WHERE identificador = ?",
-            (identificador,)
-        )
-        return self.cursor.fetchone() is not None
+            # Ejecutar la eliminación
+            self.cursor.execute("DELETE FROM pacientes WHERE identificador = ?", (identificador,))
+            self.conn.commit()
+            if self.cursor.rowcount == 0:
+                raise ValueError(f"No se pudo eliminar el paciente con identificador {identificador}")
+        except sqlite3.Error as e:
+            self.conn.rollback()
+            raise Exception(f"Error al eliminar paciente: {str(e)}")
     
     
 # ================== OPERACIONES PARA USUARIOS ================== 
@@ -311,7 +317,7 @@ class DatabaseService:
             raise Exception(f"Error al restaurar contraseña: {str(e)}")    
 # ================== OPERACIONES PARA CITAS ==================
     def guardar_cita(self, cita):
-        """Guarda una nueva cita en la base de datos"""
+        """Guarda una nueva cita en la base de datos."""
         try:
             # Verificar si el paciente existe
             self.cursor.execute(
@@ -321,14 +327,17 @@ class DatabaseService:
             if not self.cursor.fetchone():
                 raise ValueError("El paciente no existe")
 
+            # Convertir fecha de DD/MM/YY a YYYY-MM-DD si es necesario
+            fecha_sql = datetime.strptime(cita.fecha, "%d/%m/%y").strftime("%Y-%m-%d") if '/' in cita.fecha else cita.fecha
+
             # Insertar cita
-            self.cursor.execute('''
+            self.cursor.execute("""
                 INSERT INTO citas 
                 (identificador, fecha, hora, odontologo, estado)
                 VALUES (?, ?, ?, ?, ?)
-            ''', (
+            """, (
                 cita.identificador,
-                cita.fecha,
+                fecha_sql,
                 cita.hora,
                 cita.odontologo,
                 cita.estado
@@ -343,7 +352,7 @@ class DatabaseService:
             return False
 
     def obtener_citas(self, paciente_id: str = None):
-        """Obtiene todas las citas o las citas de un paciente específico"""
+        """Obtiene todas las citas o las citas de un paciente específico."""
         try:
             if paciente_id:
                 self.cursor.execute(
@@ -353,9 +362,26 @@ class DatabaseService:
             else:
                 self.cursor.execute("SELECT * FROM citas")
             citas = self.cursor.fetchall()
-            return [Cita(*cita) for cita in citas]  # Convierte a objetos Cita
+            return [Cita(*cita) for cita in citas]  # No convertimos aquí, lo haremos en el modelo o vista
         except sqlite3.Error as e:
             raise Exception(f"Error al obtener citas: {str(e)}")
+    def actualizar_cita(self, cita):
+        """Actualiza una cita específica en la base de datos."""
+        self._asegurar_conexion_abierta()
+        try:
+            # Convertir fecha de DD/MM/YY a YYYY-MM-DD si es necesario
+            fecha_sql = datetime.strptime(cita.fecha, "%d/%m/%y").strftime("%Y-%m-%d") if '/' in cita.fecha else cita.fecha
+
+            self.cursor.execute("""
+                UPDATE citas SET fecha = ?, hora = ?, odontologo = ?, estado = ?
+                WHERE id_cita = ?
+            """, (fecha_sql, cita.hora, cita.odontologo, cita.estado, cita.id_cita))
+            self.conn.commit()
+            if self.cursor.rowcount == 0:
+                raise ValueError(f"No se encontró la cita con ID {cita.id_cita}")
+        except sqlite3.Error as e:
+            self.conn.rollback()
+            raise Exception(f"Error al actualizar cita: {str(e)}")   
 
     def verificar_disponibilidad_cita(self, fecha: str, hora: str, odontologo: str) -> bool:
         """Verifica si un odontólogo está disponible en una fecha y hora específicas"""
@@ -417,15 +443,19 @@ class DatabaseService:
         
     
     # services/database_service.py
-    def guardar_vista(self, visita):
+    def guardar_visita(self, visita):
+        """Guarda una nueva visita en la base de datos."""
         try:
-            self.cursor.execute('''
+            # Convertir fecha de DD/MM/YY a YYYY-MM-DD si es necesario
+            fecha_sql = datetime.strptime(visita.fecha, "%d/%m/%y").strftime("%Y-%m-%d") if '/' in visita.fecha else visita.fecha
+
+            self.cursor.execute("""
                 INSERT INTO visitas 
                 (identificador, fecha, motivo, diagnostico, tratamiento, odontologo, estado)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (
+            """, (
                 visita.identificador,
-                visita.fecha,
+                fecha_sql,
                 visita.motivo,
                 visita.diagnostico,
                 visita.tratamiento,
@@ -439,22 +469,37 @@ class DatabaseService:
             return False
         except Exception as e:
             print(f"Error al guardar visita: {str(e)}")
-            return False 
+            return False
           
     # services/database_service.py
     def obtener_visitas(self, paciente_id: str):
         self._asegurar_conexion_abierta()
         try:
-            # Especificar explícitamente los campos en el orden que espera Visita
             self.cursor.execute(
-                "SELECT id_visita, identificador, fecha, motivo, diagnostico, tratamiento, odontologo, estado FROM visitas WHERE identificador = ?", 
+                "SELECT id_visita, identificador, fecha, motivo, diagnostico, tratamiento, odontologo, estado FROM visitas WHERE identificador = ?",
                 (paciente_id,)
             )
             visitas = self.cursor.fetchall()
-            print(f"Datos raw de visitas desde la base de datos: {visitas}")  # Depuración
-            return [Visita.from_tuple(visita) for visita in visitas]  # Usar from_tuple explícitamente
+            return [Visita.from_tuple(visita) for visita in visitas]  # No convertimos aquí
         except sqlite3.Error as e:
             raise Exception(f"Error al obtener visitas: {str(e)}")
+    def actualizar_visita(self, visita):
+        """Actualiza una visita específica en la base de datos."""
+        self._asegurar_conexion_abierta()
+        try:
+            # Convertir fecha de DD/MM/YY a YYYY-MM-DD si es necesario
+            fecha_sql = datetime.strptime(visita.fecha, "%d/%m/%y").strftime("%Y-%m-%d") if '/' in visita.fecha else visita.fecha
+
+            self.cursor.execute("""
+                UPDATE visitas SET fecha = ?, motivo = ?, diagnostico = ?, tratamiento = ?, odontologo = ?, estado = ?
+                WHERE id_visita = ?
+            """, (fecha_sql, visita.motivo, visita.diagnostico, visita.tratamiento, visita.odontologo, visita.estado, visita.id_visita))
+            self.conn.commit()
+            if self.cursor.rowcount == 0:
+                raise ValueError(f"No se encontró la visita con ID {visita.id_visita}")
+        except sqlite3.Error as e:
+            self.conn.rollback()
+            raise Exception(f"Error al actualizar visita: {str(e)}")   
         
     # services/database_service.py
     def restaurar_password_admin(self):
@@ -475,7 +520,7 @@ class DatabaseService:
             raise Exception(f"Error al restaurar contraseña: {str(e)}")     
     # ================== OPERACIONES PARA PAGOS ==================
     def guardar_pago(self, pago):
-        """Guarda un nuevo pago en la base de datos"""
+        """Guarda un nuevo pago en la base de datos."""
         try:
             # Verificar si el paciente existe
             self.cursor.execute(
@@ -485,17 +530,20 @@ class DatabaseService:
             if not self.cursor.fetchone():
                 raise ValueError("El paciente no existe")
 
+            # Convertir fecha de DD/MM/YY a YYYY-MM-DD si es necesario
+            fecha_sql = datetime.strptime(pago.fecha_pago, "%d/%m/%y").strftime("%Y-%m-%d") if '/' in pago.fecha_pago else pago.fecha_pago
+
             # Insertar pago
-            self.cursor.execute('''
+            self.cursor.execute("""
                 INSERT INTO pagos 
                 (id_visita, identificador, monto_total, monto_pagado, fecha_pago, metodo, saldo)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                pago.id_visita,  # Puede ser None si no se vincula a una visita aún
+            """, (
+                pago.id_visita,
                 pago.identificador,
                 pago.monto_total,
                 pago.monto_pagado,
-                pago.fecha_pago,
+                fecha_sql,
                 pago.metodo,
                 pago.saldo
             ))
@@ -520,9 +568,26 @@ class DatabaseService:
             else:
                 self.cursor.execute("SELECT * FROM pagos")
             pagos = self.cursor.fetchall()
-            return [Pago(*pago) for pago in pagos]  # Convierte a objetos Pago
+            return [Pago(*pago) for pago in pagos]  # No convertimos aquí
         except sqlite3.Error as e:
             raise Exception(f"Error al obtener pagos: {str(e)}")
+    def actualizar_pago(self, pago):
+        """Actualiza un pago específico en la base de datos."""
+        self._asegurar_conexion_abierta()
+        try:
+            # Convertir fecha de DD/MM/YY a YYYY-MM-DD si es necesario
+            fecha_sql = datetime.strptime(pago.fecha_pago, "%d/%m/%y").strftime("%Y-%m-%d") if '/' in pago.fecha_pago else pago.fecha_pago
+
+            self.cursor.execute("""
+                UPDATE pagos SET id_visita = ?, identificador = ?, monto_total = ?, monto_pagado = ?, fecha_pago = ?, metodo = ?, saldo = ?
+                WHERE id_pago = ?
+            """, (pago.id_visita, pago.identificador, pago.monto_total, pago.monto_pagado, fecha_sql, pago.metodo, pago.saldo, pago.id_pago))
+            self.conn.commit()
+            if self.cursor.rowcount == 0:
+                raise ValueError(f"No se encontró el pago con ID {pago.id_pago}")
+        except sqlite3.Error as e:
+            self.conn.rollback()
+            raise Exception(f"Error al actualizar pago: {str(e)}")  
     
     # ================== MÉTODOS ADICIONALES ==================
     # services/database_service.py
@@ -536,7 +601,42 @@ class DatabaseService:
                 finally:
                     self.conn = None
                     self.cursor = None
-
+    def buscar_paciente(self, texto_busqueda):
+        """
+        Busca un paciente por Identificador, Nombre o Teléfono (case-insensitive), manejando formatos especiales.
+        """
+        self._asegurar_conexion_abierta()
+        try:
+            # Depuración: Imprimir el texto de búsqueda
+            print(f"Buscando paciente con: {texto_busqueda}")
+            
+            # Limpiar el texto de búsqueda (eliminar guiones, espacios, etc.)
+            texto_limpio = texto_busqueda.replace("-", "").replace(" ", "")
+            
+            # Buscar por Identificador, Nombre o Teléfono
+            query = """
+                SELECT * FROM pacientes 
+                WHERE UPPER(identificador) LIKE UPPER(?) 
+                OR UPPER(nombre) LIKE UPPER(?) 
+                OR UPPER(REPLACE(REPLACE(telefono, '-', ''), ' ', '')) LIKE UPPER(?)
+            """
+            self.cursor.execute(query, (f"%{texto_busqueda}%", f"%{texto_busqueda}%", f"%{texto_limpio}%"))
+            resultado = self.cursor.fetchone()
+            
+            if resultado:
+                print(f"Paciente encontrado (tupla): {resultado}")  # Depuración detallada
+                try:
+                    paciente = Paciente(*resultado)
+                    print(f"Paciente creado: Identificador={paciente.identificador}, Teléfono={paciente.telefono}")
+                    return paciente
+                except Exception as e:
+                    print(f"Error al crear Paciente desde tupla: {str(e)}")
+                    raise Exception(f"Error al procesar paciente: {str(e)}")
+            print("No se encontró ningún paciente")  # Depuración
+            return None
+        except sqlite3.Error as e:
+            print(f"Error SQL al buscar paciente: {str(e)}")  # Depuración
+            raise Exception(f"Error al buscar paciente: {str(e)}")
 
     def enviar_notificacion_cita(self, paciente_email, cita_fecha, cita_hora):
         try:
@@ -568,3 +668,54 @@ class DatabaseService:
             return [Paciente(*paciente) for paciente in pacientes]
         except sqlite3.Error as e:
             raise Exception(f"Error al buscar pacientes: {str(e)}")
+    def eliminar_cita(self, id_cita):
+        """Elimina una cita específica por su ID."""
+        self._asegurar_conexion_abierta()
+        try:
+            self.cursor.execute("DELETE FROM citas WHERE id_cita = ?", (id_cita,))
+            self.conn.commit()
+            if self.cursor.rowcount == 0:
+                raise ValueError(f"No se encontró la cita con ID {id_cita}")
+        except sqlite3.Error as e:
+            self.conn.rollback()
+            raise Exception(f"Error al eliminar cita: {str(e)}")
+
+    def eliminar_visita(self, id_visita):
+        """Elimina una visita específica por su ID."""
+        self._asegurar_conexion_abierta()
+        try:
+            self.cursor.execute("DELETE FROM visitas WHERE id_visita = ?", (id_visita,))
+            self.conn.commit()
+            if self.cursor.rowcount == 0:
+                raise ValueError(f"No se encontró la visita con ID {id_visita}")
+        except sqlite3.Error as e:
+            self.conn.rollback()
+            raise Exception(f"Error al eliminar visita: {str(e)}")
+
+    def eliminar_pago(self, id_pago):
+        """Elimina un pago específico por su ID."""
+        self._asegurar_conexion_abierta()
+        try:
+            self.cursor.execute("DELETE FROM pagos WHERE id_pago = ?", (id_pago,))
+            self.conn.commit()
+            if self.cursor.rowcount == 0:
+                raise ValueError(f"No se encontró el pago con ID {id_pago}")
+        except sqlite3.Error as e:
+            self.conn.rollback()
+            raise Exception(f"Error al eliminar pago: {str(e)}")
+        
+    def obtener_pagos_mes(self, mes_ano=None):
+        """Obtiene los pagos del mes y año especificados (formato 'YYYY-MM') o del mes actual por defecto."""
+        self._asegurar_conexion_abierta()
+        try:
+            if not mes_ano:
+                from datetime import datetime
+                mes_ano = datetime.now().strftime("%Y-%m")
+            self.cursor.execute(
+                "SELECT * FROM pagos WHERE strftime('%Y-%m', fecha_pago) = ?",
+                (mes_ano,)
+            )
+            pagos = self.cursor.fetchall()
+            return [Pago(*pago) for pago in pagos]
+        except sqlite3.Error as e:
+            raise Exception(f"Error al obtener pagos del mes: {str(e)}")
