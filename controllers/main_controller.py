@@ -12,20 +12,18 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 class MainController:
     def __init__(self, rol, master=None):
-        self.rol = rol  # Usar un rol predeterminado para pruebas, por ejemplo, "admin"
+        self.rol = rol
         self.master = master
         self.db = DatabaseService()
         self.vista_principal = None
-        self._ventanas_abiertas = {}  # Diccionario para rastrear ventanas abiertas
+        self._ventanas_abiertas = {}
         self._iniciar_aplicacion()
-
     def _iniciar_aplicacion(self):
-        # Abrir directamente MenuPrincipalView con un rol predeterminado para pruebas
         self.vista_principal = MenuPrincipalView(self, self.rol, master=self.master)
-        configurar_estilos(self.vista_principal)  # Aplicar estilos a la ventana principal (MenuPrincipalView)
+        configurar_estilos(self.vista_principal)
         self._centrar_ventana()
         self.vista_principal.protocol("WM_DELETE_WINDOW", self._cerrar_aplicacion)
-        self.vista_principal.deiconify()  # Asegura que se muestre
+        self.vista_principal.deiconify()
 
     def _centrar_ventana(self):
         self.vista_principal.update_idletasks()
@@ -34,7 +32,6 @@ class MainController:
         x = (self.vista_principal.winfo_screenwidth() // 2) - (ancho // 2)
         y = (self.vista_principal.winfo_screenheight() // 2) - (alto // 2)
         self.vista_principal.geometry(f'{ancho}x{alto}+{x}+{y}')
-
     def mostrar_pacientes(self):
         """Abre la gestión de pacientes"""
         self._abrir_ventana('pacientes', 'PacientesView')
@@ -51,7 +48,10 @@ class MainController:
     def mostrar_gestion_usuarios(self):
         if self.rol == "admin":
             self._abrir_ventana('usuarios', 'GestionUsuariosView')
-
+    def mostrar_informes(self):  # Nuevo método
+        self._abrir_ventana('informes', 'InformesView')        
+    def mostrar_presupuestos(self):  # Nuevo método
+        self._abrir_ventana('presupuestos', 'PresupuestosView')  # Abrir vista de presupuestos
     def _abrir_ventana(self, clave, nombre_vista, *args):
         if clave not in self._ventanas_abiertas or not self._ventanas_abiertas[clave].winfo_exists():
             modulo_nombre = nombre_vista.lower().replace('view', '_view')
@@ -65,9 +65,11 @@ class MainController:
                 'EditarVisitaView': 'editar_visita_view',
                 'NuevoPagoView': 'nuevo_pago_view',
                 'EditarPagoView': 'editar_pago_view',
-                'CitasView': 'citas_view',  # Añadido
-                'PagosView': 'pagos_view',  # Añadido
-                'VisitasView': 'visitas_view'  # Añadido (si existe)
+                'CitasView': 'citas_view',
+                'PagosView': 'pagos_view',
+                'VisitasView': 'visitas_view',
+                'PresupuestosView': 'presupuestos_view',
+                'InformesView': 'informes_view'  # Nuevo
             }
             if nombre_vista in modulo_mapeo:
                 modulo_nombre = modulo_mapeo[nombre_vista]
@@ -122,7 +124,7 @@ class MainController:
 
     def obtener_visitas(self, paciente_id):
         return self.db.obtener_visitas_paciente(paciente_id)
-
+    
     def cerrar_sesion(self):
         # Cerrar todas las ventanas abiertas
         for clave, ventana in list(self._ventanas_abiertas.items()):

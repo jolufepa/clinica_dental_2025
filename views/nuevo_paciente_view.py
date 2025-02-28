@@ -47,8 +47,8 @@ class NuevoPacienteView(tk.Toplevel):
         personal_frame.pack(fill=tk.BOTH, expand=True, pady=10)
 
         campos_personales = [
-            ("Identificador (DNI/NIE):", "entry_identificador", tk.StringVar()),
-            ("Nombre completo:", "entry_nombre", tk.StringVar()),
+            ("DNI:", "entry_identificador", tk.StringVar()),
+            ("Nombre Completo:", "entry_nombre", tk.StringVar()),
             ("Fecha nacimiento (DD/MM/AAAA):", "entry_fecha_nac", tk.StringVar()),
             ("Teléfono:", "entry_telefono", tk.StringVar()),
             ("Email:", "entry_email", tk.StringVar()),

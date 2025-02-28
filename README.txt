@@ -32,6 +32,8 @@ Esta es una aplicación de gestión para una clínica dental, desarrollada en Py
 - Bibliotecas requeridas:
   - `tkinter` (incluido en la instalación estándar de Python)
   - `sqlite3` (incluido en la instalación estándar de Python)
+  - reportlab
+  - tkcalendar
 
 ## Instrucciones de Instalación
 1. Clona o descarga el repositorio del proyecto.

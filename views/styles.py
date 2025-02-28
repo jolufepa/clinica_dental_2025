@@ -35,7 +35,7 @@ def configurar_estilos(root):
     
     # Estilo para etiquetas (título)
     style.configure("TLabel", 
-                    font=("Helvetica", 16, "bold"),
+                    font=("Helvetica", 14, "bold"),
                     foreground="#333333")  # Texto gris oscuro
     
     # Asegurar que los estilos se apliquen a la raíz

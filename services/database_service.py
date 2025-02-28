@@ -26,7 +26,7 @@ class DatabaseService:
             cls._instance._inicializar()
         return cls._instance
 
-    # services/database_service.py
+    
     def _inicializar(self):
         self.conn = sqlite3.connect("clinica_dental.db", check_same_thread=False)  # Permitir múltiples hilos
         self.cursor = self.conn.cursor()
@@ -102,6 +102,49 @@ class DatabaseService:
                 except sqlite3.ProgrammingError:
                     print("Conexión cerrada, reinicializando...")
                     self._inicializar()
+                    
+                    
+    def obtener_registros_por_fecha(self, concepto, paciente_id=None, fecha_inicio=None, fecha_fin=None):
+        """Obtiene registros (citas, visitas o pagos) filtrados por rango de fechas y paciente_id, incluyendo nombre del paciente."""
+        self._asegurar_conexion_abierta()
+        try:
+            if concepto == "citas":
+                query = "SELECT c.*, p.nombre FROM citas c JOIN pacientes p ON c.identificador = p.identificador WHERE 1=1"
+                params = []
+                if paciente_id:
+                    query += " AND c.identificador = ?"
+                    params.append(paciente_id)
+                if fecha_inicio or fecha_fin:
+                    query += " AND c.fecha BETWEEN ? AND ?"
+                    params.extend([fecha_inicio or "1970-01-01", fecha_fin or datetime.now().strftime("%Y-%m-%d")])
+                self.cursor.execute(query, params)
+                return self.cursor.fetchall()  # Tuplas con (id_cita, identificador, fecha, hora, odontologo, estado, nombre)
+            elif concepto == "visitas":
+                query = "SELECT v.*, p.nombre FROM visitas v JOIN pacientes p ON v.identificador = p.identificador WHERE 1=1"
+                params = []
+                if paciente_id:
+                    query += " AND v.identificador = ?"
+                    params.append(paciente_id)
+                if fecha_inicio or fecha_fin:
+                    query += " AND v.fecha BETWEEN ? AND ?"
+                    params.extend([fecha_inicio or "1970-01-01", fecha_fin or datetime.now().strftime("%Y-%m-%d")])
+                self.cursor.execute(query, params)
+                return self.cursor.fetchall()  # Tuplas con (id_visita, identificador, fecha, motivo, diagnostico, tratamiento, odontologo, estado, nombre)
+            elif concepto == "pagos":
+                query = "SELECT p.*, pa.nombre FROM pagos p JOIN pacientes pa ON p.identificador = pa.identificador WHERE 1=1"
+                params = []
+                if paciente_id:
+                    query += " AND p.identificador = ?"
+                    params.append(paciente_id)
+                if fecha_inicio or fecha_fin:
+                    query += " AND p.fecha_pago BETWEEN ? AND ?"
+                    params.extend([fecha_inicio or "1970-01-01", fecha_fin or datetime.now().strftime("%Y-%m-%d")])
+                self.cursor.execute(query, params)
+                return self.cursor.fetchall()  # Tuplas con (id_pago, id_visita, identificador, monto_total, monto_pagado, fecha_pago, metodo, saldo, nombre)
+            else:
+                raise ValueError("Concepto no válido. Use 'citas', 'visitas' o 'pagos'")
+        except sqlite3.Error as e:
+            raise Exception(f"Error al obtener registros: {str(e)}")                
     # ================== OPERACIONES PARA PACIENTES ==================
     def guardar_paciente(self, paciente):
         self._asegurar_conexion_abierta()
@@ -129,6 +172,16 @@ class DatabaseService:
         self.cursor.execute("SELECT * FROM pacientes")
         pacientes = self.cursor.fetchall()
         return [Paciente(*paciente) for paciente in pacientes]
+    def obtener_nombre_paciente(self, identificador):
+        """Obtiene el nombre del paciente por su identificador."""
+        self._asegurar_conexion_abierta()
+        try:
+            self.cursor.execute("SELECT nombre FROM pacientes WHERE identificador = ?", (identificador,))
+            result = self.cursor.fetchone()
+            return result[0] if result else "Desconocido"
+        except sqlite3.Error as e:
+            raise Exception(f"Error al obtener nombre del paciente: {str(e)}")
+
 
     # services/database_service.py
     # En services/database_service.py

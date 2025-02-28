@@ -18,18 +18,29 @@ class PacientesView(tk.Toplevel):
     def __init__(self, controller):
         super().__init__()
         self.controller = controller
-        self.title("Gestión de Pacientes Clinica P&D ")
-        self.geometry("1000x700")
+        self.title("Gestión de Pacientes Clínica P&D")
+        # Permitir redimensionamiento
         self.resizable(True, True)
         self.paciente_id = None
         self.personal_vars = {}
         self.personal_widgets = {}
         self.historial_widgets = {}
         self._crear_widgets()
-        self._centrar_ventana()
+        self._inicializar_posicion()  # Establecer posición inicial sin centrado automático
         configurar_estilos(self)
         self.protocol("WM_DELETE_WINDOW", self._cerrar_ventana)
 
+        # Vincular evento de cambio de pestaña
+        self.notebook.bind("<<NotebookTabChanged>>", self._ajustar_tamanio_ventana)
+    def _inicializar_posicion(self):
+        """Establece una posición inicial razonable sin forzar centrado automático."""
+        self.update_idletasks()
+        ancho = 800  # Ancho base inicial
+        alto = 500  # Altura base inicial para "Información Personal"
+        # Usar una posición inicial fija (por ejemplo, 100, 100) o dejar que el sistema lo coloque
+        self.geometry(f"{ancho}x{alto}+100+100")  # Posición fija inicial (ajustable)
+        self.update_idletasks()  # Asegurar que la ventana se renderice
+    
     def _centrar_ventana(self):
         self.update_idletasks()
         ancho = self.winfo_width()
@@ -42,26 +53,27 @@ class PacientesView(tk.Toplevel):
         main_frame = ttk.Frame(self, padding="10")
         main_frame.pack(fill=tk.BOTH, expand=True)
 
+        # Frame para la búsqueda con diseño en grid
         search_frame = ttk.Frame(main_frame)
         search_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(search_frame, text="Buscar Paciente:").pack(side=tk.LEFT, padx=5)
 
-        # Usamos ttk.Combobox con autocompletado
-        self.search_combo = ttk.Combobox(search_frame, width=30, postcommand=self._actualizar_sugerencias)
-        self.search_combo.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
-        self.search_combo.bind('<KeyRelease>', self._actualizar_sugerencias)  # Actualiza sugerencias al escribir
-        self.search_combo.bind('<Return>', lambda event: self._buscar_paciente())  # Busca al presionar Enter
-        self.search_combo.bind('<<ComboboxSelected>>', self._on_sugerencia_seleccionada)  # Captura selección
+        ttk.Label(search_frame, text="Buscar Paciente:").grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        self.search_combo = ttk.Combobox(search_frame, width=40)  # Aumentado de 30 a 40
+        self.search_combo.grid(row=0, column=1, padx=5, pady=10, sticky="w")  # Aumentado pady para más altura visual
+        self.search_combo.bind('<KeyRelease>', self._actualizar_sugerencias)
+        self.search_combo.bind('<Return>', lambda event: self._buscar_paciente())
+        self.search_combo.bind('<<ComboboxSelected>>', self._on_sugerencia_seleccionada)
 
-        ttk.Button(search_frame, text="Buscar", command=self._buscar_paciente).pack(side=tk.LEFT, padx=5)
+        ttk.Button(search_frame, text="Buscar", command=self._buscar_paciente).grid(row=0, column=2, padx=5, pady=5)
 
-        # Resto del código (button_frame, notebook, etc.) permanece igual
+        # Frame para los botones de acción
         button_frame = ttk.Frame(main_frame)
         button_frame.pack(fill=tk.X, pady=5)
         ttk.Button(button_frame, text="Agregar Paciente", command=self._abrir_nuevo_paciente).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Editar", command=self._abrir_editar_paciente).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Eliminar", command=self._eliminar_paciente).pack(side=tk.LEFT, padx=5)
 
+        # Notebook para las pestañas
         self.notebook = ttk.Notebook(main_frame)
         self.notebook.pack(fill=tk.BOTH, expand=True, pady=5)
 
@@ -84,6 +96,34 @@ class PacientesView(tk.Toplevel):
         pagos_frame = ttk.Frame(self.notebook)
         self.notebook.add(pagos_frame, text="Pagos y Deudas")
         self._crear_lista_pagos(pagos_frame)
+        
+        
+    def _ajustar_tamanio_ventana(self, event):
+        """Ajusta el tamaño de la ventana según la pestaña activa, manteniendo la posición."""
+        tab_id = self.notebook.tab(self.notebook.select(), "text")
+        ancho_base = 800  # Ancho fijo
+        alto_minimo = 550  # Altura mínima
+
+        if tab_id == "Información Personal":
+            alto = 400
+        elif tab_id == "Historial Médico":
+            alto = 500
+        elif tab_id == "Citas":
+            alto = 550
+        elif tab_id == "Visitas":
+            alto = 550
+        elif tab_id == "Pagos y Deudas":
+            alto = 600
+        else:
+            alto = 500
+
+        # Asegurar que el alto no sea menor que el mínimo
+        alto = max(alto, alto_minimo)
+        # Obtener la posición actual de la ventana y mantenerla
+        current_x = self.winfo_x()
+        current_y = self.winfo_y()
+        self.geometry(f"{ancho_base}x{alto}+{current_x}+{current_y}")
+        self.update_idletasks()  # Actualizar la ventana sin recálculo de posición
 
     def _crear_formulario_personal(self, frame):
         fields = [
@@ -95,7 +135,6 @@ class PacientesView(tk.Toplevel):
             ("Dirección", 40)
         ]
         self.personal_widgets = {}
-        print(f"Inicializando self.personal_vars: {self.personal_vars}")  # Depuración
         for i, (label_text, width) in enumerate(fields):
             ttk.Label(frame, text=label_text + ":").grid(row=i, column=0, padx=5, pady=5, sticky="e")
             var = tk.StringVar()
@@ -108,11 +147,10 @@ class PacientesView(tk.Toplevel):
                 "Dirección": "direccion"
             }[label_text]
             self.personal_vars[key] = var
-            print(f"Asignando clave {key} a self.personal_vars")  # Depuración
             entry = ttk.Entry(frame, textvariable=var, width=width, state="disabled")
             entry.grid(row=i, column=1, padx=5, pady=5, sticky="w")
             self.personal_widgets[key] = entry
-            print(f"Creando widget ttk.Entry para {key}")
+
 
     def _crear_formulario_historial(self, frame):
         fields = [
@@ -215,10 +253,11 @@ class PacientesView(tk.Toplevel):
         self.tree_pagos = ttk.Treeview(frame, columns=("ID", "Fecha", "Monto Total", "Pagado", "Método", "Saldo"), show="headings", height=5)
         for col in self.tree_pagos["columns"]:
             self.tree_pagos.heading(col, text=col)
-            self.tree_pagos.column(col, width=120, anchor=tk.W, stretch=tk.YES)
+            self.tree_pagos.column(col, width=100, anchor=tk.W, stretch=tk.YES)  # Reducido ancho de columnas a 100
         self.tree_pagos.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
         self.tree_pagos.bind("<<TreeviewSelect>>", self._on_pago_select)
+        self.tree_pagos.bind("<Double-1>", self._editar_pago)
 
     def _buscar_paciente(self):
         texto_busqueda = self.search_combo.get().strip()
@@ -462,13 +501,14 @@ class PacientesView(tk.Toplevel):
         texto_busqueda = self.search_combo.get().strip()
         if not texto_busqueda:
             self.search_combo['values'] = []
-            self.pacientes_sugeridos = []  # Limpia la lista de pacientes sugeridos
+            self.pacientes_sugeridos = []
             return
 
         try:
-            # Obtener pacientes que coincidan con el texto (por identificador o nombre)
+            # Obtener pacientes que coincidan con el texto
             self.pacientes_sugeridos = self.controller.db.buscar_pacientes(texto_busqueda)
-            sugerencias = [f"{p.identificador} - {p.nombre}" for p in self.pacientes_sugeridos]
+            # Aplicar .title() al nombre en las sugerencias
+            sugerencias = [f"{p.identificador} - {p.nombre.title()}" for p in self.pacientes_sugeridos]
             self.search_combo['values'] = sugerencias[:10]  # Limita a 10 sugerencias
         except Exception as e:
             messagebox.showerror("Error", f"Error al cargar sugerencias: {str(e)}")
@@ -476,10 +516,9 @@ class PacientesView(tk.Toplevel):
         """Al seleccionar una sugerencia, inserta solo el identificador y busca al paciente."""
         seleccion = self.search_combo.get()
         if seleccion and self.pacientes_sugeridos:
-            # Extraer el identificador de la cadena formateada (por ejemplo, "12345678X - Juan Pérez")
-            identificador = seleccion.split(" - ")[0]  # Toma solo "12345678X"
-            self.search_combo.set(identificador)  # Inserta solo el DNI/NIE en el campo
-            self._buscar_paciente()  # Busca automáticamente el paciente
+            identificador = seleccion.split(" - ")[0]
+            self.search_combo.set(identificador)
+            self._buscar_paciente()
     def _editar_cita(self, event):
         """Abre un diálogo para editar la cita seleccionada en el Treeview."""
         selected_item = self.tree_citas.selection()
@@ -649,12 +688,11 @@ class PacientesView(tk.Toplevel):
         self.tree_pagos = ttk.Treeview(frame, columns=("ID", "Fecha", "Monto Total", "Pagado", "Método", "Saldo"), show="headings", height=5)
         for col in self.tree_pagos["columns"]:
             self.tree_pagos.heading(col, text=col)
-            self.tree_pagos.column(col, width=120, anchor=tk.W, stretch=tk.YES)
+            self.tree_pagos.column(col, width=100, anchor=tk.W, stretch=tk.YES)
         self.tree_pagos.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        # Vincular eventos: selección y doble clic para edición
         self.tree_pagos.bind("<<TreeviewSelect>>", self._on_pago_select)
-        self.tree_pagos.bind("<Double-1>", self._editar_pago)  # Añadir edición con doble clic  
+        self.tree_pagos.bind("<Double-1>", self._editar_pago) 
     def _editar_pago(self, event):
         """Abre un diálogo para editar el pago seleccionado en el Treeview."""
         selected_item = self.tree_pagos.selection()
