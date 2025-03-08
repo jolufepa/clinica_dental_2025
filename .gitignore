@@ -1,4 +1,9 @@
 __pycache__/
 *.pyc
 clinica_dental.db
+presupuestos*
+recetas
+odontograma.db
+odontograma.json
+informes
 .vscode/
