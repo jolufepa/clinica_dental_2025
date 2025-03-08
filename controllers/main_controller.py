@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 from views.styles import configurar_estilos
 
+
 # Añade la ruta del proyecto al sistema
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 

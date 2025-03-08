@@ -1,4 +1,5 @@
 # ARCHIVO  services/database_service.py
+import json
 import sqlite3
 from datetime import datetime
 import threading
@@ -8,9 +9,11 @@ from models.visita import Visita
 from models.pago import Pago
 from models.receta import Receta
 from models.cita import Cita
+from models.odontograma import Odontograma
 import bcrypt   # Importar bcrypt para encriptación de contraseñas
 import smtplib
 from email.mime.text import MIMEText
+
 
 DEBUG = False  # Variable global para depuración
 
@@ -48,7 +51,11 @@ class DatabaseService:
                 tratamientos_previos TEXT,
                 notas TEXT
             );
-
+            CREATE TABLE IF NOT EXISTS odontogramas (
+                paciente_id TEXT PRIMARY KEY,
+                datos TEXT,  -- JSON con el estado de los dientes
+                FOREIGN KEY (paciente_id) REFERENCES pacientes(identificador)
+            );
             CREATE TABLE IF NOT EXISTS visitas (
                 id_visita INTEGER PRIMARY KEY AUTOINCREMENT,
                 identificador TEXT,
@@ -772,3 +779,42 @@ class DatabaseService:
             return [Pago(*pago) for pago in pagos]
         except sqlite3.Error as e:
             raise Exception(f"Error al obtener pagos del mes: {str(e)}")
+    def guardar_odontograma(self, odontograma):
+        self._asegurar_conexion_abierta()
+        try:
+            datos_json = json.dumps(odontograma.to_dict()["dientes"])
+            print(f"Guardando odontograma: paciente_id={odontograma.paciente_id}, datos_json={datos_json}")
+            self.cursor.execute(
+                "INSERT OR REPLACE INTO odontogramas (paciente_id, datos) VALUES (?, ?)",
+                (odontograma.paciente_id, datos_json)
+            )
+            self.conn.commit()
+            print("Odontograma guardado en la base de datos.")
+        except sqlite3.Error as e:
+            self.conn.rollback()
+            print(f"Error SQL al guardar odontograma: {str(e)}")
+            raise Exception(f"Error al guardar odontograma: {str(e)}")
+        except json.JSONEncodeError as e:
+            print(f"Error al codificar JSON del odontograma: {str(e)}")
+            raise Exception(f"Error al codificar odontograma: {str(e)}")
+
+    def obtener_odontograma(self, paciente_id):
+        self._asegurar_conexion_abierta()
+        try:
+            self.cursor.execute("SELECT datos FROM odontogramas WHERE paciente_id = ?", (paciente_id,))
+            result = self.cursor.fetchone()
+            if result:
+                datos = json.loads(result[0])
+                print(f"Datos deserializados del odontograma: {datos}")
+                return Odontograma(paciente_id, datos)
+            print(f"No se encontró odontograma para paciente_id: {paciente_id}, creando nuevo.")
+            return Odontograma(paciente_id)
+        except sqlite3.Error as e:
+            print(f"Error SQL al obtener odontograma: {str(e)}")
+            raise Exception(f"Error al obtener odontograma: {str(e)}")
+        except json.JSONDecodeError as e:
+            print(f"Error al decodificar JSON del odontograma: {str(e)}")
+            raise Exception(f"Error al decodificar odontograma: {str(e)}")
+        except Exception as e:
+            print(f"Error inesperado en obtener_odontograma: {str(e)} - Stack: {str(e)}")
+            raise

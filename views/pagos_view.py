@@ -44,6 +44,7 @@ class PagosView(tk.Toplevel):
             self.tree_pacientes.heading("Nombre", text="Nombre")
             self.tree_pacientes.heading("Teléfono", text="Teléfono")
             self.tree_pacientes.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+            self.tree_pagos.bind("<Double-1>", self._editar_pago)
 
             # Vincular la selección en el Treeview de pacientes para actualizar pagos
             self.tree_pacientes.bind("<<TreeviewSelect>>", self._on_paciente_select)
@@ -199,3 +200,16 @@ class PagosView(tk.Toplevel):
         """Carga todos los pacientes y permite buscar/cargar pagos manualmente."""
         self._cargar_pacientes()
         self._cargar_pagos()  # Cargar pagos vacíos o del último paciente seleccionado
+    def _editar_pago(self, event):
+        selected_item = self.tree_pagos.selection()
+        if not selected_item:
+            messagebox.showwarning("Advertencia", "Selecciona un pago primero")
+            return
+        values = self.tree_pagos.item(selected_item[0])['values']
+        if not values or len(values) < 6:
+            messagebox.showerror("Error", "Datos de pago inválidos")
+            return
+        id_pago, fecha, monto_total, monto_pagado, metodo, saldo = values
+        from views.editar_pago_view import EditarPagoView
+        EditarPagoView(self.controller, id_pago, self.paciente_id)
+        self._cargar_pagos()  # Actualizar después de editar    

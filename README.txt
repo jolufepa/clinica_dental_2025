@@ -63,7 +63,19 @@ Esta es una aplicación de gestión para una clínica dental, desarrollada en Py
 - Usa depuración (`print` statements) en la consola para rastrear problemas; considera reemplazarlos por logging para producción.
 - La base de datos (`clinica_dental.db`) se crea automáticamente al iniciar la aplicación si no existe, con tablas predefinidas en `services/database_service.py`.
 - Los estilos se aplican globalmente con `configurar_estilos`; modifica `views/styles.py` para personalizar colores, fuentes, etc.
+**`_crear_odontograma`:** 
+  - Usa un `Canvas` de 600x500 píxeles para dibujar una cuadrícula de 32 dientes (4 filas x 8 columnas).
+  - Cada diente es un círculo (`create_oval`) con un número y un color inicial ("lightgray").
+  - Botones permiten cambiar el estado (sano, caries, extracción, tratamiento) con colores asociados.
+  - Un campo de notas y un botón de guardar completan la interfaz.
 
+- **Interactividad:**
+  - Al hacer clic en un diente, cambia su estado y se actualiza el color.
+  - Las notas se asocian al diente seleccionado (por simplicidad, al diente 1 por ahora; se puede expandir).
+
+- **Carga y Guardado:**
+  - `_cargar_odontograma` recupera los datos del paciente desde la base de datos.
+  - `_guardar_odontograma` guarda los cambios usando `DatabaseService`.
 ## Contacto
 Para preguntas o colaboraciones, contacta al desarrollador principal (Jose Luis Fernandez P. email. jolufepa@gmail.com).
 

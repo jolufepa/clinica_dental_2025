@@ -1,3 +1,4 @@
+from datetime import datetime
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
@@ -51,6 +52,8 @@ class VisitasView(tk.Toplevel):
             for col in self.tree_pacientes["columns"]:
                 self.tree_pacientes.column(col, width=150, anchor=tk.W)
             self.tree_pacientes.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+            
+            self.tree_visitas.bind("<Double-1>", self._editar_visitas)
 
             # Vincular la selección en el Treeview de pacientes para actualizar visitas
             self.tree_pacientes.bind("<<TreeviewSelect>>", self._on_paciente_select)
@@ -99,33 +102,23 @@ class VisitasView(tk.Toplevel):
             messagebox.showerror("Error", f"Error al cargar pacientes: {str(e)}")
 
     def _cargar_visitas(self):
-        """Obtiene y muestra las visitas del paciente seleccionado desde la base de datos (manual o automático)"""
-        try:
-            print(f"Cargando visitas para paciente_id: {self.paciente_id}")  # Depuración
-            # Limpiar visitas actuales
+        if self.paciente_id:
+            visitas = self.controller.db.obtener_visitas(self.paciente_id)
             for item in self.tree_visitas.get_children():
                 self.tree_visitas.delete(item)
-
-            if self.paciente_id:
-                visitas = self.controller.db.obtener_visitas(self.paciente_id)
-                print(f"Visitas obtenidas: {visitas}")  # Depuración
-                print(f"Visitas detalladas: {[v.__dict__ for v in visitas]}")  # Depuración detallada
-                # Insertar nuevas visitas con el orden correcto de los campos
-                for visita in visitas:
-                    self.tree_visitas.insert("", tk.END, values=(
-                        visita.id_visita,
-                        visita.identificador,
-                        visita.fecha,
-                        visita.motivo,
-                        visita.diagnostico,
-                        visita.tratamiento,
-                        visita.odontologo,
-                        visita.estado
-                    ))
-            else:
-                messagebox.showwarning("Advertencia", "Seleccione un paciente para cargar sus visitas.")
-        except Exception as e:
-            messagebox.showerror("Error", f"Error al cargar visitas: {str(e)}")
+            for visita in visitas:
+                # Convertir fecha de YYYY-MM-DD a DD/MM/YY para mostrar
+                fecha_europea = datetime.strptime(visita.fecha, "%Y-%m-%d").strftime("%d/%m/%y")
+                self.tree_visitas.insert("", tk.END, values=(
+                    visita.id_visita,
+                    visita.identificador,
+                    fecha_europea,
+                    visita.motivo,
+                    visita.diagnostico,
+                    visita.tratamiento,
+                    visita.odontologo,
+                    visita.estado
+                ))
 
     def _on_paciente_select(self, event):
         """Actualiza las visitas cuando se selecciona un paciente en el Treeview (solo si no hay paciente_id inicial)"""
@@ -222,3 +215,19 @@ class VisitasView(tk.Toplevel):
         """Carga todos los pacientes y permite buscar/cargar visitas manualmente."""
         self._cargar_pacientes()
         self._cargar_visitas()  # Cargar visitas vacías o del último paciente seleccionado
+    def _editar_visita(self, event):
+        """Abre un diálogo para editar la visita seleccionada en el Treeview."""
+        selected_item = self.tree_visitas.selection()
+        if not selected_item:
+            messagebox.showwarning("Advertencia", "Selecciona una visita primero")
+            return
+        
+        values = self.tree_visitas.item(selected_item[0])['values']
+        if not values or len(values) < 8:
+            messagebox.showerror("Error", "Datos de visita inválidos")
+            return
+        
+        id_visita, identificador, fecha, motivo, diagnostico, tratamiento, odontologo, estado = values
+        from views.editar_visita_view import EditarVisitaView
+        EditarVisitaView(self.controller, id_visita, self.paciente_id)
+        self._cargar_visitas()  # Actualizar la lista de visitas después de editar

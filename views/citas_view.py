@@ -54,6 +54,7 @@ class CitasView(tk.Toplevel):
 
             # Vincular la selección en el Treeview de pacientes para actualizar citas
             self.tree_pacientes.bind("<<TreeviewSelect>>", self._on_paciente_select)
+            self.tree_citas.bind("<Double-1>", self._editar_cita)
 
         # Frame para botones (siempre visible, pero ajustado si no hay paciente_id)
         button_frame = ttk.Frame(main_frame)
@@ -247,4 +248,17 @@ class CitasView(tk.Toplevel):
             else:
                 messagebox.showwarning("Advertencia", "No se especificó un paciente.")
         except Exception as e:
-            messagebox.showerror("Error", f"Error al cargar citas directamente: {str(e)}")    
+            messagebox.showerror("Error", f"Error al cargar citas directamente: {str(e)}")
+    def _editar_cita(self, event):
+        selected_item = self.tree_citas.selection()
+        if not selected_item:
+            messagebox.showwarning("Advertencia", "Selecciona una cita primero")
+            return
+        values = self.tree_citas.item(selected_item[0])['values']
+        if not values or len(values) < 6:
+            messagebox.showerror("Error", "Datos de cita inválidos")
+            return
+        id_cita, paciente_id, fecha, hora, odontologo, estado = values
+        from views.editar_cita_view import EditarCitaView
+        EditarCitaView(self.controller, id_cita, paciente_id)
+        self._cargar_citas()  # Actualizar después de editar            

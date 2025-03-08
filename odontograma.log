@@ -1,0 +1,16 @@
+2025-03-01 23:17:48,260 - INFO - Tratamiento guardado para diente 13
+2025-03-01 23:22:33,052 - INFO - Tratamiento guardado para diente 15
+2025-03-01 23:22:44,150 - INFO - Tratamiento guardado para diente 44
+2025-03-01 23:23:29,311 - INFO - Tratamiento guardado para diente 11
+2025-03-01 23:23:52,930 - INFO - Paciente 26321674z agregado
+2025-03-01 23:30:33,090 - INFO - Tratamiento guardado para diente 11
+2025-03-01 23:39:31,443 - INFO - Tratamiento guardado para diente 11
+2025-03-01 23:42:11,978 - ERROR - Error al guardar tratamiento: table treatments has no column named next_review
+2025-03-01 23:42:17,687 - ERROR - Error al guardar tratamiento: table treatments has no column named next_review
+2025-03-01 23:42:22,290 - ERROR - Error al guardar tratamiento: table treatments has no column named next_review
+2025-03-01 23:42:26,706 - ERROR - Error al guardar tratamiento: table treatments has no column named next_review
+2025-03-01 23:42:30,241 - ERROR - Error al guardar tratamiento: table treatments has no column named next_review
+2025-03-01 23:44:26,464 - INFO - Tratamiento guardado para diente 44
+2025-03-01 23:44:37,537 - INFO - Tratamiento guardado para diente 44
+2025-03-01 23:44:47,133 - INFO - Tratamiento guardado para diente 44
+2025-03-01 23:45:00,448 - INFO - Tratamiento guardado para diente 48

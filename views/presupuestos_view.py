@@ -217,8 +217,8 @@ class PresupuestosView(tk.Toplevel):
         pdf_file = os.path.join(carpeta_mensual, nombre_archivo)
 
         # Observaciones como condiciones de pago
-        condiciones_pago = self.observaciones_text.get("1.0", tk.END).strip() or "Efectivo, tarjeta de crédito, planes de financiamiento disponibles."
-        validez = "15 días"
+        condiciones_pago = self.observaciones_text.get("1.0", tk.END).strip() or "Efectivo, tarjeta de crédito"
+        validez = "30 días"
 
         # Generar el PDF
         c = canvas.Canvas(pdf_file, pagesize=letter)
